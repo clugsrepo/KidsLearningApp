@@ -64,8 +64,9 @@ fieldset .hint { margin-top: 6px; }
 <div class="app">
   <form class="panel" id="controls" autocomplete="off" novalidate>
     <nav class="switch" aria-label="Sheets">
-      <a href="./">Spellings</a>
+      <a href="index.html">Spellings</a>
       <a href="maths.html" aria-current="page">Maths</a>
+      <a href="tens-and-ones.html">Tens &amp; ones</a>
     </nav>
 
     <header class="brand">
@@ -169,7 +170,7 @@ fieldset .hint { margin-top: 6px; }
 (() => {
   "use strict";
 
-  const { PAGE, HEAD_H, r2, plural, esc, chunk, hasHead, sheetHead } = window.SheetApp;
+  const { PAGE, HEAD_H, r2, plural, esc, chunk, seededRandom, hasHead, sheetHead } = window.SheetApp;
   const SUMS_PER_PAGE = 2;
   const BLOCK_GAP = 8;
   const QUESTION_H = 20;
@@ -188,8 +189,6 @@ fieldset .hint { margin-top: 6px; }
     mark: "#c2410c",
   };
 
-  const newSeed = () => Math.floor(Math.random() * 2147483647);
-
   const DEFAULTS = {
     name: "",
     title: "Maths practice",
@@ -202,22 +201,10 @@ fieldset .hint { margin-top: 6px; }
     space: "big",
     headings: true,
     answers: "worked",
-    seed: newSeed(),
+    seed: 0,
   };
 
   // ---------- Making the sums ----------
-
-  // Small seeded random generator, so the preview and the printout show the same sums.
-  function seededRandom(seed) {
-    let a = seed >>> 0;
-    return () => {
-      a = (a + 0x6d2b79f5) >>> 0;
-      let t = a;
-      t = Math.imul(t ^ (t >>> 15), t | 1);
-      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
-  }
 
   // True when the column method needs a carry (adding) or a borrow (taking away) somewhere.
   function needsExchange(a, b, op) {
@@ -520,39 +507,9 @@ fieldset .hint { margin-top: 6px; }
     if (typeof state.answers === "boolean") state.answers = state.answers ? "worked" : "none";
   }
 
-  // ---------- Fresh sums every time ----------
-
-  const STALE_AFTER_MS = 30 * 60 * 1000;
-  let printedSeed = null;
-  let hiddenAt = 0;
-
-  function freshSums() {
-    app.state.seed = newSeed();
-    app.save();
-    app.render();
-  }
-
-  // A set that has already gone to print is swapped for a new one before the next print,
-  // so the preview never changes while a print box is open.
-  function beforePrint() {
-    if (app.state.seed === printedSeed) freshSums();
-    printedSeed = app.state.seed;
-  }
-
-  const app = window.SheetApp.start({ storeKey: "maths-sheets:v1", defaults: DEFAULTS, build, migrate, beforePrint });
-
-  document.getElementById("newSums").addEventListener("click", freshSums);
-
-  // New sums when coming back to a page left open in the background, or restored with Back.
-  document.addEventListener("visibilitychange", () => {
-    if (document.hidden) hiddenAt = Date.now();
-    else if (hiddenAt && Date.now() - hiddenAt > STALE_AFTER_MS) freshSums();
-  });
-  window.addEventListener("pageshow", (e) => {
-    if (e.persisted) freshSums();
-  });
-
-  freshSums();
+  const app = window.SheetApp.start({ storeKey: "maths-sheets:v1", defaults: DEFAULTS, build, migrate, fresh: true });
+  document.getElementById("newSums").addEventListener("click", app.reseed);
+  app.render();
 })();
 </script>
 </body>

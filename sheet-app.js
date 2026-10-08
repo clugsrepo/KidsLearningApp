@@ -9,12 +9,27 @@
   PAGE.CONTENT_H = PAGE.H - PAGE.PAD_Y * 2 - 1;
   const HEAD_H = 12;
   const PX_PER_MM = 96 / 25.4;
+  const STALE_AFTER_MS = 30 * 60 * 1000;
 
   const r2 = (n) => Math.round(n * 100) / 100;
   const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
   function esc(text) {
     return String(text).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  const newSeed = () => Math.floor(Math.random() * 2147483647);
+
+  // Small seeded random generator, so the preview and the printout show the same questions.
+  function seededRandom(seed) {
+    let a = seed >>> 0;
+    return () => {
+      a = (a + 0x6d2b79f5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
   }
 
   function chunk(list, size) {
@@ -36,8 +51,9 @@
   // build(state) returns { pages, summary, font?, empty? }. A page is an HTML string,
   // or { html, label } to add a note such as "Answers" to its preview label.
   // migrate(state) can update settings saved by an older version of the page.
-  // beforePrint() runs when Print is pressed, before the print box opens.
-  function start({ storeKey, defaults, build, migrate, beforePrint }) {
+  // fresh: true gives state.seed a new value each time the page opens, before each print of a
+  // set that has already been printed, and on coming back to the page after a while.
+  function start({ storeKey, defaults, build, migrate, fresh = false }) {
     const form = document.getElementById("controls");
     const preview = document.getElementById("preview");
     const sheetsEl = document.getElementById("sheets");
@@ -121,8 +137,22 @@
     form.addEventListener("change", onChange);
     form.addEventListener("submit", (e) => e.preventDefault());
 
+    let printedSeed = null;
+    let hiddenAt = 0;
+
+    function reseed() {
+      state.seed = newSeed();
+      save();
+      render();
+    }
+
     printBtn.addEventListener("click", async () => {
-      if (beforePrint) beforePrint();
+      // A set that has already gone to print is swapped before the next print,
+      // so the preview never changes while a print box is open.
+      if (fresh) {
+        if (state.seed === printedSeed) reseed();
+        printedSeed = state.seed;
+      }
       try { await document.fonts.ready; } catch (e) { /* print anyway */ }
       window.print();
     });
@@ -133,8 +163,19 @@
     if (migrate) migrate(state);
     fillControls();
     fitPreview();
-    return { state, render, save, form };
+    if (fresh) {
+      state.seed = newSeed();
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) hiddenAt = Date.now();
+        else if (hiddenAt && Date.now() - hiddenAt > STALE_AFTER_MS) reseed();
+      });
+      window.addEventListener("pageshow", (e) => {
+        if (e.persisted) reseed();
+      });
+    }
+
+    return { state, render, save, form, reseed };
   }
 
-  window.SheetApp = { PAGE, HEAD_H, r2, plural, esc, chunk, hasHead, sheetHead, start };
+  window.SheetApp = { PAGE, HEAD_H, r2, plural, esc, chunk, seededRandom, hasHead, sheetHead, start };
 })();

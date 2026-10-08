@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tens and Ones</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Lexend:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="app.css">
+<style>
+/* Green like base-ten blocks, in place of the yellow spelling card. */
+:root {
+  --card: #d6edd3;
+  --card-edge: #a5cf9f;
+}
+.brand-card { font-size: 22px; }
+fieldset .hint { margin-top: 6px; }
+
+/* Tens and ones sheet layouts (sizes in mm). */
+.pv-page { display: flex; flex-direction: column; gap: 5mm; }
+.key { flex: none; display: flex; align-items: center; gap: 3mm; font-size: 4.2mm; color: #4a4455; }
+.key svg { flex: none; }
+.key .spacer { width: 6mm; }
+.pv-q { flex: none; display: grid; grid-template-columns: 10mm minmax(0, 1fr); column-gap: 4mm; }
+.pv-num {
+  width: 10mm;
+  height: 10mm;
+  border: 0.4mm solid #8d8896;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 5mm;
+  font-weight: 700;
+  color: #4a4455;
+}
+.pv-body { display: flex; flex-direction: column; gap: 3mm; min-width: 0; }
+.pv-ask { margin: 0; font-size: 5.4mm; line-height: 10mm; }
+.pv-row { display: flex; align-items: center; gap: 10mm; }
+.pv-row svg { flex: none; }
+.stack { display: flex; flex-direction: column; gap: 3mm; }
+.sentence { display: flex; align-items: center; gap: 2.5mm; font-size: 7mm; line-height: 1; white-space: nowrap; }
+.box { flex: none; width: 15mm; height: 12mm; border: 0.5mm solid #8d8896; border-radius: 2mm; }
+.draw-box { flex: none; width: 92mm; height: 40mm; border: 0.4mm dashed #aab0bd; border-radius: 2mm; }
+.gaps { display: grid; grid-template-columns: 62mm 1fr; gap: 6mm 4mm; }
+.gaps .sentence { font-size: 5.6mm; gap: 2mm; }
+.gaps .box { width: 12mm; height: 10mm; }
+.gaps .letter { width: 5mm; font-size: 4.2mm; color: #77727f; }
+
+.answers-head h2 { margin: 0; font-size: 9mm; line-height: 1; }
+.answers-head p { margin: 2mm 0 0; font-size: 4.4mm; color: #77727f; }
+.answers { margin: 6mm 0 0; padding: 0; list-style: none; font-size: 4.8mm; }
+.answers li { display: flex; gap: 3mm; padding: 2.2mm 0; border-bottom: 0.2mm solid #e3e1e8; white-space: nowrap; }
+.answers .n { flex: none; width: 8mm; color: #77727f; }
+.answers .kind { flex: none; width: 38mm; color: #77727f; }
+</style>
+</head>
+<body>
+<div class="app">
+  <form class="panel" id="controls" autocomplete="off" novalidate>
+    <nav class="switch" aria-label="Sheets">
+      <a href="index.html">Spellings</a>
+      <a href="maths.html">Maths</a>
+      <a href="tens-and-ones.html" aria-current="page">Tens &amp; ones</a>
+    </nav>
+
+    <header class="brand">
+      <div class="brand-card" aria-hidden="true">18</div>
+      <div>
+        <h1>Tens and Ones</h1>
+        <p>Year 2 place value. Four questions per page, mixed up.</p>
+      </div>
+    </header>
+
+    <div class="pair">
+      <div class="field">
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" autocapitalize="words" placeholder="Child's name">
+      </div>
+      <div class="field">
+        <label for="title">Title</label>
+        <input type="text" id="title" name="title">
+      </div>
+    </div>
+
+    <div class="options">
+      <fieldset>
+        <legend>Numbers</legend>
+        <div class="seg-row">
+          <label><input type="radio" name="upTo" value="20"><span>Up to 20</span></label>
+          <label><input type="radio" name="upTo" value="50"><span>Up to 50</span></label>
+          <label><input type="radio" name="upTo" value="100"><span>Up to 100</span></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Questions</legend>
+        <div class="seg-row">
+          <label><input type="checkbox" name="count"><span>Count the picture</span></label>
+          <label><input type="checkbox" name="partwhole"><span>Part-whole</span></label>
+          <label><input type="checkbox" name="draw"><span>Draw it</span></label>
+          <label><input type="checkbox" name="gaps"><span>Fill the gaps</span></label>
+        </div>
+        <p class="hint">Count tens sticks and ones cubes, split a number in the part-whole circles, draw a number, or fill in sentences like 18 = 10 + 8.</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Pages</legend>
+        <div class="seg-row">
+          <label><input type="radio" name="pages" value="1"><span>1</span></label>
+          <label><input type="radio" name="pages" value="2"><span>2</span></label>
+          <label><input type="radio" name="pages" value="3"><span>3</span></label>
+          <label><input type="radio" name="pages" value="4"><span>4</span></label>
+          <label><input type="radio" name="pages" value="5"><span>5</span></label>
+        </div>
+      </fieldset>
+
+      <label class="check">
+        <input type="checkbox" name="answers">
+        <span>Answers page<small>Printed last, for checking.</small></span>
+      </label>
+
+      <div class="field">
+        <button type="button" class="btn-secondary" id="newQuestions">New questions</button>
+        <p class="hint">You get a fresh set each time you open this page or press Print.</p>
+      </div>
+    </div>
+
+    <div class="print-box">
+      <button type="button" class="btn-primary" id="printBtn">Print</button>
+      <p class="summary" id="summary"></p>
+    </div>
+  </form>
+
+  <main class="preview" id="preview" aria-label="Print preview">
+    <div class="sheets" id="sheets"></div>
+  </main>
+</div>
+
+<script src="sheet-app.js"></script>
+<script>
+(() => {
+  "use strict";
+
+  const { PAGE, HEAD_H, plural, esc, chunk, seededRandom, hasHead, sheetHead } = window.SheetApp;
+  const PER_PAGE = 4;
+  const ANSWERS_PER_PAGE = 20;
+  const KEY_H = 10;
+  const GAP = 5;
+  const RANGES = { 20: [10, 20], 50: [10, 50], 100: [10, 99] };
+  const TYPES = ["count", "partwhole", "draw", "gaps"];
+  const TYPE_NAMES = { count: "Count the picture", partwhole: "Part-whole", draw: "Draw it", gaps: "Fill the gaps" };
+
+  const COLOURS = {
+    block: "#dcefd8",
+    blockEdge: "#4f7a4b",
+    circle: "#4a4455",
+    ink: "#1f1a2b",
+  };
+
+  const DEFAULTS = {
+    name: "",
+    title: "Tens and ones",
+    upTo: "50",
+    count: true,
+    partwhole: true,
+    draw: true,
+    gaps: true,
+    pages: "2",
+    answers: true,
+    seed: 0,
+  };
+
+  const tensOf = (n) => Math.floor(n / 10);
+  const onesOf = (n) => n % 10;
+  const tensWord = (t) => `${t} ${t === 1 ? "ten" : "tens"}`;
+  const onesWord = (o) => `${o} ${o === 1 ? "one" : "ones"}`;
+  const inWords = (n) => `${tensWord(tensOf(n))} and ${onesWord(onesOf(n))}`;
+
+  // ---------- Making the questions ----------
+
+  function makeQuestions(s) {
+    const types = TYPES.filter((t) => s[t]);
+    if (!types.length) return [];
+
+    const rand = seededRandom(s.seed);
+    const [lo, hi] = RANGES[s.upTo] || RANGES[50];
+    const used = new Set();
+    const number = () => {
+      if (used.size > hi - lo) used.clear();
+      let n;
+      do n = lo + Math.floor(rand() * (hi - lo + 1)); while (used.has(n));
+      used.add(n);
+      return n;
+    };
+    const shuffled = (list) => {
+      const out = [...list];
+      for (let i = out.length - 1; i > 0; i--) {
+        const j = Math.floor(rand() * (i + 1));
+        [out[i], out[j]] = [out[j], out[i]];
+      }
+      return out;
+    };
+
+    // Each page gets a shuffled mix of the chosen question types.
+    const count = (Number(s.pages) || 1) * PER_PAGE;
+    const order = [];
+    while (order.length < count) order.push(...shuffled(types));
+
+    return order.slice(0, count).map((type) => {
+      if (type === "gaps") return { type, items: [number(), number(), number(), number()] };
+      if (type === "partwhole") return { type, n: number(), findWhole: rand() < 0.35 };
+      return { type, n: number() };
+    });
+  }
+
+  // ---------- Drawing ----------
+
+  // Tens as sticks of ten cubes and ones as single cubes, ones stacked from the bottom in fives.
+  function baseTen(n, cell = 4) {
+    const gap = cell * 0.7;
+    const rodH = cell * 10;
+    let out = "";
+    let x = 0.3;
+    for (let i = 0; i < tensOf(n); i++) {
+      out += `<rect x="${x}" y="0.3" width="${cell}" height="${rodH}" fill="${COLOURS.block}" stroke="${COLOURS.blockEdge}" stroke-width="0.3"/>`;
+      for (let k = 1; k < 10; k++) {
+        out += `<line x1="${x}" x2="${x + cell}" y1="${0.3 + k * cell}" y2="${0.3 + k * cell}" stroke="${COLOURS.blockEdge}" stroke-width="0.2"/>`;
+      }
+      x += cell + gap;
+    }
+    const ones = onesOf(n);
+    if (ones) x += gap;
+    const step = cell + gap * 0.5;
+    for (let i = 0; i < ones; i++) {
+      const cx = x + Math.floor(i / 5) * step;
+      const cy = 0.3 + rodH - ((i % 5) + 1) * step + gap * 0.5;
+      out += `<rect x="${cx}" y="${cy}" width="${cell}" height="${cell}" fill="${COLOURS.block}" stroke="${COLOURS.blockEdge}" stroke-width="0.3"/>`;
+    }
+    const width = x + (ones ? Math.ceil(ones / 5) * step : 0) + 0.3;
+    const height = rodH + 0.6;
+    return `<svg width="${width}mm" height="${height}mm" viewBox="0 0 ${width} ${height}" aria-hidden="true">${out}</svg>`;
+  }
+
+  // The part-whole model: the whole in the top circle, its two parts below. null leaves a circle empty.
+  function partWhole(whole, tens, ones) {
+    const r = 9.5;
+    const spots = [[32, 10.5, whole], [11, 33.5, tens], [53, 33.5, ones]];
+    let out = "";
+    for (const [px, py] of spots.slice(1)) {
+      const [wx, wy] = spots[0];
+      const len = Math.hypot(px - wx, py - wy);
+      const ux = (px - wx) / len;
+      const uy = (py - wy) / len;
+      out += `<line x1="${wx + ux * r}" y1="${wy + uy * r}" x2="${px - ux * r}" y2="${py - uy * r}" stroke="${COLOURS.circle}" stroke-width="0.4"/>`;
+    }
+    for (const [cx, cy, value] of spots) {
+      out += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#ffffff" stroke="${COLOURS.circle}" stroke-width="0.45"/>`;
+      if (value !== null) out += `<text x="${cx}" y="${cy}" font-size="7.5" text-anchor="middle" dominant-baseline="central" fill="${COLOURS.ink}">${value}</text>`;
+    }
+    return `<svg width="64mm" height="44mm" viewBox="0 0 64 44" aria-hidden="true">${out}</svg>`;
+  }
+
+  function keyRow() {
+    const cell = 2.6;
+    let rod = `<rect x="0.3" y="0.3" width="${cell * 10}" height="${cell}" fill="${COLOURS.block}" stroke="${COLOURS.blockEdge}" stroke-width="0.3"/>`;
+    for (let k = 1; k < 10; k++) {
+      rod += `<line x1="${0.3 + k * cell}" x2="${0.3 + k * cell}" y1="0.3" y2="${0.3 + cell}" stroke="${COLOURS.blockEdge}" stroke-width="0.2"/>`;
+    }
+    const cube = `<rect x="0.3" y="0.3" width="${cell}" height="${cell}" fill="${COLOURS.block}" stroke="${COLOURS.blockEdge}" stroke-width="0.3"/>`;
+    const svg = (w, body) => `<svg width="${w}mm" height="${cell + 0.6}mm" viewBox="0 0 ${w} ${cell + 0.6}" aria-hidden="true">${body}</svg>`;
+    return `<div class="key" style="height:${KEY_H}mm">${svg(cell * 10 + 0.6, rod)}<span>= 1 ten</span><span class="spacer"></span>${svg(cell + 0.6, cube)}<span>= 1 one</span></div>`;
+  }
+
+  const box = '<span class="box"></span>';
+  const LETTERS = ["a", "b", "c", "d"];
+
+  // The four fill-the-gap sentences in the order they appear (left to right, then down).
+  function gapItems(q) {
+    const [a, b, c, d] = q.items;
+    return [
+      { html: `${box} = ${tensOf(a) * 10} + ${onesOf(a)}`, answer: `${a}` },
+      { html: `${inWords(b)} = ${box}`, answer: `${b}` },
+      { html: `${c} = ${tensOf(c) * 10} + ${box}`, answer: `${onesOf(c)}` },
+      { html: `${box} tens and ${box} ones = ${d}`, answer: `${tensOf(d)} and ${onesOf(d)}` },
+    ];
+  }
+
+  function questionHtml(q, num, height) {
+    let ask;
+    let body;
+    if (q.type === "count") {
+      ask = "Count the tens and ones.";
+      body = `<div class="pv-row">${baseTen(q.n)}<div class="stack">
+          <div class="sentence">${box} tens</div>
+          <div class="sentence">${box} ones</div>
+          <div class="sentence">The number is ${box}</div>
+        </div></div>`;
+    } else if (q.type === "partwhole") {
+      const t = tensOf(q.n) * 10;
+      const o = onesOf(q.n);
+      ask = q.findWhole ? "What is the whole?" : `Split ${q.n} into tens and ones.`;
+      const sentence = q.findWhole ? `${box} = ${t} + ${o}` : `${q.n} = ${box} + ${box}`;
+      const model = q.findWhole ? partWhole(null, t, o) : partWhole(q.n, null, null);
+      body = `<div class="pv-row">${model}<div class="sentence">${sentence}</div></div>`;
+    } else if (q.type === "draw") {
+      ask = `Draw ${q.n} using tens and ones.`;
+      body = `<div class="pv-row"><div class="draw-box"></div><div class="stack">
+          <div class="sentence">${q.n} =</div>
+          <div class="sentence">${box} tens</div>
+          <div class="sentence">${box} ones</div>
+        </div></div>`;
+    } else {
+      ask = "Fill in the missing numbers.";
+      const items = gapItems(q).map((item, i) => `<div class="sentence"><span class="letter">${LETTERS[i]}</span>${item.html}</div>`);
+      body = `<div class="gaps">${items.join("")}</div>`;
+    }
+    return `<section class="pv-q" style="height:${height}mm">
+        <span class="pv-num">${num}</span>
+        <div class="pv-body"><p class="pv-ask">${ask}</p>${body}</div>
+      </section>`;
+  }
+
+  function answerText(q) {
+    if (q.type === "count") return `${q.n}, which is ${inWords(q.n)}`;
+    if (q.type === "partwhole") return `${q.n} = ${tensOf(q.n) * 10} + ${onesOf(q.n)}`;
+    if (q.type === "draw") return `${q.n} = ${inWords(q.n)}`;
+    return gapItems(q).map((item, i) => `${LETTERS[i]}) ${item.answer}`).join("&emsp;");
+  }
+
+  function answerPages(s, questions) {
+    const items = questions.map((q, i) => `<li><span class="n">${i + 1}.</span><span class="kind">${TYPE_NAMES[q.type]}</span><span>${answerText(q)}</span></li>`);
+    const sub = [s.name.trim(), s.title.trim()].filter(Boolean).join(" · ");
+    const head = `<header class="answers-head"><h2>Answers</h2>${sub ? `<p>${esc(sub)}</p>` : ""}</header>`;
+    return chunk(items, ANSWERS_PER_PAGE).map((group, i) => ({
+      label: "Answers",
+      html: `${i === 0 ? head : sheetHead(s)}<ol class="answers" start="${i * ANSWERS_PER_PAGE + 1}">${group.join("")}</ol>`,
+    }));
+  }
+
+  function build(s) {
+    const questions = makeQuestions(s);
+    if (!questions.length) {
+      return { empty: "Tick at least one kind of question.", summary: "Pick a question type to print." };
+    }
+    const showKey = s.count || s.draw;
+    const headH = hasHead(s) ? HEAD_H : 0;
+    const keyH = showKey ? KEY_H + GAP : 0;
+    const blockH = (PAGE.CONTENT_H - headH - keyH - (PER_PAGE - 1) * GAP) / PER_PAGE;
+
+    const pages = chunk(questions, PER_PAGE).map((group, p) => {
+      const blocks = group.map((q, i) => questionHtml(q, p * PER_PAGE + i + 1, blockH)).join("");
+      return `${sheetHead(s)}<div class="pv-page">${showKey ? keyRow() : ""}${blocks}</div>`;
+    });
+    const answers = s.answers ? answerPages(s, questions) : [];
+    const extra = answers.length ? ` + ${plural(answers.length, "answer page")}` : "";
+    return {
+      pages: [...pages, ...answers],
+      summary: `${plural(questions.length, "question")} · ${plural(pages.length, "page")}${extra} · A4`,
+    };
+  }
+
+  const app = window.SheetApp.start({ storeKey: "tens-ones-sheets:v1", defaults: DEFAULTS, build, fresh: true });
+  document.getElementById("newQuestions").addEventListener("click", app.reseed);
+  app.render();
+})();
+</script>
+</body>
+</html>
