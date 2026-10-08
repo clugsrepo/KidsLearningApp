@@ -35,7 +35,8 @@
 
   // build(state) returns { pages, summary, font?, empty? }. A page is an HTML string,
   // or { html, label } to add a note such as "Answers" to its preview label.
-  function start({ storeKey, defaults, build }) {
+  // migrate(state) can update settings saved by an older version of the page.
+  function start({ storeKey, defaults, build, migrate }) {
     const form = document.getElementById("controls");
     const preview = document.getElementById("preview");
     const sheetsEl = document.getElementById("sheets");
@@ -127,6 +128,7 @@
     if ("ResizeObserver" in window) new ResizeObserver(fitPreview).observe(preview);
     else window.addEventListener("resize", fitPreview);
 
+    if (migrate) migrate(state);
     fillControls();
     fitPreview();
     return { state, render, save, form };

@@ -42,6 +42,22 @@
 .answers { margin: 8mm 0 0; padding: 0; list-style: none; columns: 2; column-gap: 12mm; font-size: 5.5mm; }
 .answers li { break-inside: avoid; display: flex; gap: 3mm; padding: 2.5mm 0; border-bottom: 0.2mm solid #e3e1e8; }
 .answers .n { flex: none; width: 8mm; color: #77727f; }
+
+.worked { display: flex; flex-direction: column; margin-top: 6mm; }
+.w-card {
+  display: grid;
+  grid-template-columns: 52mm minmax(0, 1fr);
+  column-gap: 7mm;
+  row-gap: 3mm;
+  padding: 4mm 0;
+  border-top: 0.2mm solid #e3e1e8;
+}
+.w-card:first-child { border-top: 0; padding-top: 0; }
+.w-title { grid-column: 1 / -1; margin: 0; display: flex; gap: 3mm; font-size: 5mm; }
+.w-title .n { flex: none; width: 7mm; color: #77727f; }
+.steps { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 1.2mm; font-size: 3.6mm; line-height: 1.35; }
+
+fieldset .hint { margin-top: 6px; }
 </style>
 </head>
 <body>
@@ -88,7 +104,7 @@
           <label><input type="checkbox" name="hundreds"><span>Hundreds</span></label>
           <label><input type="checkbox" name="thousands"><span>Thousands</span></label>
         </div>
-        <p class="hint" style="margin-top: 6px">Like 47, 382 and 5164. Tick more than one to mix them.</p>
+        <p class="hint">Like 47, 382 and 5164. Tick more than one to mix them.</p>
       </fieldset>
 
       <label class="check">
@@ -121,10 +137,15 @@
         <span>Place value headings<small>Th, H, T and O along the top of the squares to line the digits up.</small></span>
       </label>
 
-      <label class="check">
-        <input type="checkbox" name="answers">
-        <span>Answers page<small>Printed last, for checking.</small></span>
-      </label>
+      <fieldset>
+        <legend>Answers</legend>
+        <div class="seg-row">
+          <label><input type="radio" name="answers" value="worked"><span>With workings</span></label>
+          <label><input type="radio" name="answers" value="quick"><span>Answers only</span></label>
+          <label><input type="radio" name="answers" value="none"><span>None</span></label>
+        </div>
+        <p class="hint">Printed after the sums. With workings shows each sum done in columns, step by step.</p>
+      </fieldset>
 
       <button type="button" class="btn-secondary" id="newSums">New sums</button>
     </div>
@@ -160,6 +181,8 @@
     gridEdge: "#aab0bd",
     headingFill: "#edf0f6",
     headingText: "#4a4455",
+    ink: "#1f1a2b",
+    mark: "#c2410c",
   };
 
   const newSeed = () => Math.floor(Math.random() * 2147483647);
@@ -175,7 +198,7 @@
     pages: "3",
     space: "big",
     headings: true,
-    answers: true,
+    answers: "worked",
     seed: newSeed(),
   };
 
@@ -296,15 +319,183 @@
     });
   }
 
-  function answersPage(s, sums) {
+  function answersHead(s, heading, note = "") {
+    const sub = [s.name.trim(), s.title.trim()].filter(Boolean).map(esc).join(" · ");
+    const lines = [sub, note].filter(Boolean).map((line) => `<p>${line}</p>`).join("");
+    return `<header class="answers-head"><h2>${heading}</h2>${lines}</header>`;
+  }
+
+  function quickAnswerPages(s, sums) {
     const items = sums
       .map((sum, i) => `<li><span class="n">${i + 1}.</span><span>${calcText(sum)} <b>${sum.answer}</b></span></li>`)
       .join("");
-    const sub = [s.name.trim(), s.title.trim()].filter(Boolean).map(esc).join(" · ");
-    return {
+    return [{ label: "Answers", html: `${answersHead(s, "Answers")}<ol class="answers">${items}</ol>` }];
+  }
+
+  // ---------- Worked answers ----------
+
+  const PLACE_NAMES = ["ones", "tens", "hundreds", "thousands", "ten thousands"];
+  const UNIT_NAMES = ["one", "ten", "hundred", "thousand", "ten thousand"];
+  const WORKED_PER_PAGE = 4;
+  const CELL = 8;
+
+  const digitsOnesFirst = (n) => String(n).split("").reverse().map(Number);
+  const capital = (text) => text[0].toUpperCase() + text.slice(1);
+  const listWords = (words) => (words.length > 1 ? `${words.slice(0, -1).join(", ")} and ${words[words.length - 1]}` : words[0]);
+
+  // Column addition, ones first: which columns get a carried 1, and a line of explanation per column.
+  function workAddition(a, b) {
+    const A = digitsOnesFirst(a);
+    const B = digitsOnesFirst(b);
+    const carries = [];
+    const steps = [];
+    let carry = 0;
+
+    for (let i = 0; i < Math.max(A.length, B.length); i++) {
+      const parts = [A[i], B[i]].filter((d) => d !== undefined);
+      const total = parts.reduce((t, d) => t + d, 0) + carry;
+      const sumText = `${parts.join(" + ")}${carry ? ` + ${carry} carried` : ""}`;
+      let text;
+      if (parts.length === 1 && !carry) text = `Nothing to add, so write ${parts[0]}.`;
+      else if (total >= 10) text = `${sumText} = ${total}. Write ${total % 10} and carry 1 into the ${PLACE_NAMES[i + 1]}.`;
+      else text = `${sumText} = ${total}. Write ${total}.`;
+      steps.push({ place: i, text });
+      carry = total >= 10 ? 1 : 0;
+      if (carry) carries[i + 1] = true;
+    }
+    if (carry) steps.push({ place: steps.length, text: "Write the carried 1." });
+    return { carries, steps };
+  }
+
+  // Column subtraction by exchanging, ones first. Records the new value written above each
+  // crossed-out top digit, which columns receive an extra 10, and a line per column.
+  function workSubtraction(a, b) {
+    const A = digitsOnesFirst(a);
+    const B = digitsOnesFirst(b);
+    const answerLength = String(a - b).length;
+    const cur = [...A];
+    const crossed = [];
+    const gotTen = [];
+    const steps = [];
+
+    for (let i = 0; i < A.length; i++) {
+      const db = B[i];
+      let text = crossed[i] !== undefined ? `The ${A[i]} is now ${cur[i]}. ` : "";
+
+      if (db !== undefined && cur[i] < db) {
+        let j = i + 1;
+        while (cur[j] === 0) j++;
+        const zeros = [];
+        for (let k = i + 1; k < j; k++) zeros.push(k);
+        const from = cur[j];
+        cur[j] -= 1;
+        crossed[j] = cur[j];
+        zeros.forEach((k) => { cur[k] = 9; crossed[k] = 9; });
+        const before = cur[i];
+        cur[i] += 10;
+        gotTen[i] = true;
+
+        if (!zeros.length) {
+          text += `${before} is smaller than ${db}, so exchange 1 ${UNIT_NAMES[j]} for 10 ${PLACE_NAMES[i]}. `;
+        } else {
+          const names = listWords(zeros.map((k) => PLACE_NAMES[k]));
+          const zeroWords = zeros.length > 1 ? "digits are 0" : "digit is 0";
+          const nines = zeros.length > 1 ? "each 0 becomes 9" : "the 0 becomes 9";
+          text += `${before} is smaller than ${db}. The ${names} ${zeroWords}, so exchange from the ${PLACE_NAMES[j]}: ${from} becomes ${cur[j]}, ${nines} and the ${before} becomes ${cur[i]}. `;
+        }
+      }
+
+      if (i >= answerLength) text += `${db !== undefined ? `${cur[i]} − ${db} = 0` : "Nothing is left"}, so leave it blank.`;
+      else if (db === undefined) text += `Nothing to take away, so write ${cur[i]}.`;
+      else text += `${cur[i]} − ${db} = ${cur[i] - db}. Write ${cur[i] - db}.`;
+      steps.push({ place: i, text });
+    }
+    return { crossed, gotTen, steps };
+  }
+
+  // The sum set out in columns under place value headings, with carries and exchanges marked.
+  function columnWorking(sum) {
+    const c = CELL;
+    const isAdd = sum.op === "+";
+    const work = isAdd ? workAddition(sum.a, sum.b) : workSubtraction(sum.a, sum.b);
+    const A = digitsOnesFirst(sum.a);
+    const B = digitsOnesFirst(sum.b);
+    const R = digitsOnesFirst(sum.answer);
+    const n = Math.max(A.length, B.length, R.length);
+    const width = (n + 1) * c;
+    const x = (place) => (n - place) * c; // left edge of a place's column; the sign has the first column
+    const small = 0.55 * c;
+
+    let y = 0;
+    const yHead = y;
+    y += 0.75 * c;
+    const yMarks = y;
+    if (!isAdd) y += small;
+    const yA = y;
+    y += c;
+    const yB = y;
+    y += c;
+    const yCarry = y;
+    if (isAdd) y += small;
+    const yAnswer = y;
+    y += c;
+    const height = y + 0.5;
+
+    const digit = (text, left, top, weight = 400) =>
+      `<text x="${r2(left + c / 2)}" y="${r2(top + 0.72 * c)}" font-size="${r2(0.62 * c)}" font-weight="${weight}" text-anchor="middle" fill="${COLOURS.ink}">${text}</text>`;
+    const mark = (text, cx, baseline, size) =>
+      `<text x="${r2(cx)}" y="${r2(baseline)}" font-size="${r2(size)}" text-anchor="middle" fill="${COLOURS.mark}">${text}</text>`;
+
+    let out = "";
+    for (let p = 0; p < n; p++) {
+      out += `<rect x="${r2(x(p))}" y="${yHead}" width="${c}" height="${r2(0.75 * c)}" fill="${COLOURS.headingFill}"/>`;
+      out += `<text x="${r2(x(p) + c / 2)}" y="${r2(yHead + 0.52 * c)}" font-size="${r2(0.32 * c)}" font-weight="700" text-anchor="middle" fill="${COLOURS.headingText}">${PLACE_VALUES[PLACE_VALUES.length - 1 - p]}</text>`;
+    }
+    for (const top of [yA, yB, yAnswer]) {
+      for (let col = 0; col <= n; col++) {
+        out += `<rect x="${col * c}" y="${r2(top)}" width="${c}" height="${c}" fill="none" stroke="${COLOURS.grid}" stroke-width="0.2"/>`;
+      }
+    }
+
+    A.forEach((d, p) => {
+      out += digit(d, x(p), yA);
+      if (isAdd) return;
+      if (work.crossed[p] !== undefined) {
+        out += `<line x1="${r2(x(p) + 0.25 * c)}" y1="${r2(yA + 0.85 * c)}" x2="${r2(x(p) + 0.75 * c)}" y2="${r2(yA + 0.15 * c)}" stroke="${COLOURS.mark}" stroke-width="0.35"/>`;
+        out += mark(`${work.gotTen[p] ? "1" : ""}${work.crossed[p]}`, x(p) + c / 2, yMarks + 0.45 * c, 0.42 * c);
+      } else if (work.gotTen[p]) {
+        out += mark("1", x(p) + 0.17 * c, yA + 0.42 * c, 0.36 * c);
+      }
+    });
+    out += digit(sum.op, 0, yB);
+    B.forEach((d, p) => { out += digit(d, x(p), yB); });
+    if (isAdd) {
+      work.carries.forEach((carried, p) => { if (carried) out += mark("1", x(p) + c / 2, yCarry + 0.45 * c, 0.42 * c); });
+    }
+    R.forEach((d, p) => { out += digit(d, x(p), yAnswer, 700); });
+    for (const lineY of [yAnswer, yAnswer + c]) {
+      out += `<line x1="0" x2="${r2(width)}" y1="${r2(lineY)}" y2="${r2(lineY)}" stroke="${COLOURS.ink}" stroke-width="0.4"/>`;
+    }
+
+    const svg = `<svg width="${r2(width)}mm" height="${r2(height)}mm" viewBox="0 0 ${r2(width)} ${r2(height)}" aria-hidden="true">${out}</svg>`;
+    return { svg, steps: work.steps };
+  }
+
+  function workedAnswerPages(s, sums) {
+    const cards = sums.map((sum, i) => {
+      const { svg, steps } = columnWorking(sum);
+      const items = steps.map((step) => `<li><b>${capital(PLACE_NAMES[step.place])}:</b> ${step.text}</li>`).join("");
+      return `<section class="w-card">
+          <p class="w-title"><span class="n">${i + 1}.</span><span>${calcText(sum)} <b>${sum.answer}</b></span></p>
+          ${svg}
+          <ol class="steps">${items}</ol>
+        </section>`;
+    });
+    const note = "Start with the ones. The small numbers show what was carried or exchanged.";
+    return chunk(cards, WORKED_PER_PAGE).map((group, i) => ({
       label: "Answers",
-      html: `<header class="answers-head"><h2>Answers</h2>${sub ? `<p>${sub}</p>` : ""}</header><ol class="answers">${items}</ol>`,
-    };
+      html: `${i === 0 ? answersHead(s, "Answers and workings", note) : sheetHead(s)}<div class="worked">${group.join("")}</div>`,
+    }));
   }
 
   function build(s) {
@@ -312,16 +503,21 @@
     if (!sums.length) {
       return { empty: "Tick at least one number size to make some sums.", summary: "Pick a number size to print." };
     }
-    const pages = questionPages(s, sums);
-    if (s.answers) pages.push(answersPage(s, sums));
-    const sheets = Math.ceil(sums.length / SUMS_PER_PAGE);
+    const questions = questionPages(s, sums);
+    const answers = s.answers === "worked" ? workedAnswerPages(s, sums) : s.answers === "quick" ? quickAnswerPages(s, sums) : [];
+    const extra = answers.length ? ` + ${plural(answers.length, "answer page")}` : "";
     return {
-      pages,
-      summary: `${plural(sums.length, "sum")} · ${plural(sheets, "page")}${s.answers ? " + answers" : ""} · A4`,
+      pages: [...questions, ...answers],
+      summary: `${plural(sums.length, "sum")} · ${plural(questions.length, "page")}${extra} · A4`,
     };
   }
 
-  const app = window.SheetApp.start({ storeKey: "maths-sheets:v1", defaults: DEFAULTS, build });
+  // Answers used to be a single on/off tick box.
+  function migrate(state) {
+    if (typeof state.answers === "boolean") state.answers = state.answers ? "worked" : "none";
+  }
+
+  const app = window.SheetApp.start({ storeKey: "maths-sheets:v1", defaults: DEFAULTS, build, migrate });
 
   document.getElementById("newSums").addEventListener("click", () => {
     app.state.seed = newSeed();
