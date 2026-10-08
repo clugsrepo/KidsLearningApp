@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Maths Sheets</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Lexend:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="app.css">
+<style>
+/* Blue like a school maths book, in place of the yellow spelling card. */
+:root {
+  --card: #cfe3f6;
+  --card-edge: #9ec3e6;
+}
+.brand-card { font-size: 24px; letter-spacing: 0.04em; }
+
+/* Maths sheet layouts (sizes in mm). */
+.qs { display: flex; flex-direction: column; gap: 8mm; }
+.q { flex: none; display: flex; flex-direction: column; gap: 4mm; }
+.q-row { flex: none; display: flex; align-items: center; gap: 5mm; height: 20mm; }
+.q-num {
+  flex: none;
+  width: 10mm;
+  height: 10mm;
+  border: 0.4mm solid #8d8896;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 5mm;
+  font-weight: 700;
+  color: #4a4455;
+}
+.q-calc { font-size: 11mm; line-height: 1; white-space: nowrap; letter-spacing: 0.02em; }
+.q-answer { flex: none; width: 50mm; height: 16mm; border: 0.5mm solid #8d8896; border-radius: 2mm; }
+.blank-space { flex: none; border: 0.3mm solid #c9cdd6; border-radius: 2mm; }
+
+.answers-head { flex: none; }
+.answers-head h2 { margin: 0; font-size: 9mm; line-height: 1; }
+.answers-head p { margin: 2mm 0 0; font-size: 4.4mm; color: #77727f; }
+.answers { margin: 8mm 0 0; padding: 0; list-style: none; columns: 2; column-gap: 12mm; font-size: 5.5mm; }
+.answers li { break-inside: avoid; display: flex; gap: 3mm; padding: 2.5mm 0; border-bottom: 0.2mm solid #e3e1e8; }
+.answers .n { flex: none; width: 8mm; color: #77727f; }
+</style>
+</head>
+<body>
+<div class="app">
+  <form class="panel" id="controls" autocomplete="off" novalidate>
+    <nav class="switch" aria-label="Sheets">
+      <a href="./">Spellings</a>
+      <a href="maths.html" aria-current="page">Maths</a>
+    </nav>
+
+    <header class="brand">
+      <div class="brand-card" aria-hidden="true">+−</div>
+      <div>
+        <h1>Maths Sheets</h1>
+        <p>Choose the sums, check the preview, then print. Two sums per page.</p>
+      </div>
+    </header>
+
+    <div class="pair">
+      <div class="field">
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" autocapitalize="words" placeholder="Child's name">
+      </div>
+      <div class="field">
+        <label for="title">Title</label>
+        <input type="text" id="title" name="title">
+      </div>
+    </div>
+
+    <div class="options">
+      <fieldset>
+        <legend>Sums</legend>
+        <div class="seg-row">
+          <label><input type="radio" name="ops" value="add"><span>Adding</span></label>
+          <label><input type="radio" name="ops" value="sub"><span>Taking away</span></label>
+          <label><input type="radio" name="ops" value="both"><span>Both</span></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Number sizes</legend>
+        <div class="seg-row">
+          <label><input type="checkbox" name="tens"><span>Tens</span></label>
+          <label><input type="checkbox" name="hundreds"><span>Hundreds</span></label>
+          <label><input type="checkbox" name="thousands"><span>Thousands</span></label>
+        </div>
+        <p class="hint" style="margin-top: 6px">Like 47, 382 and 5164. Tick more than one to mix them.</p>
+      </fieldset>
+
+      <label class="check">
+        <input type="checkbox" name="exchange">
+        <span>Include exchanging<small>Carrying when adding and borrowing when taking away. Untick for easier sums.</small></span>
+      </label>
+
+      <fieldset>
+        <legend>Pages</legend>
+        <div class="seg-row">
+          <label><input type="radio" name="pages" value="1"><span>1</span></label>
+          <label><input type="radio" name="pages" value="2"><span>2</span></label>
+          <label><input type="radio" name="pages" value="3"><span>3</span></label>
+          <label><input type="radio" name="pages" value="4"><span>4</span></label>
+          <label><input type="radio" name="pages" value="5"><span>5</span></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Working-out space</legend>
+        <div class="seg-row">
+          <label><input type="radio" name="space" value="big"><span>Big squares</span></label>
+          <label><input type="radio" name="space" value="small"><span>Small squares</span></label>
+          <label><input type="radio" name="space" value="blank"><span>Blank</span></label>
+        </div>
+      </fieldset>
+
+      <label class="check" data-show="space:big small">
+        <input type="checkbox" name="headings">
+        <span>Place value headings<small>Th, H, T and O along the top of the squares to line the digits up.</small></span>
+      </label>
+
+      <label class="check">
+        <input type="checkbox" name="answers">
+        <span>Answers page<small>Printed last, for checking.</small></span>
+      </label>
+
+      <button type="button" class="btn-secondary" id="newSums">New sums</button>
+    </div>
+
+    <div class="print-box">
+      <button type="button" class="btn-primary" id="printBtn">Print</button>
+      <p class="summary" id="summary"></p>
+    </div>
+  </form>
+
+  <main class="preview" id="preview" aria-label="Print preview">
+    <div class="sheets" id="sheets"></div>
+  </main>
+</div>
+
+<script src="sheet-app.js"></script>
+<script>
+(() => {
+  "use strict";
+
+  const { PAGE, HEAD_H, r2, plural, esc, chunk, hasHead, sheetHead } = window.SheetApp;
+  const SUMS_PER_PAGE = 2;
+  const BLOCK_GAP = 8;
+  const QUESTION_H = 20;
+  const QUESTION_GAP = 4;
+  const SQUARE = { big: 10, small: 7 };
+  const DIGITS = { tens: 2, hundreds: 3, thousands: 4 };
+  const PLACE_VALUES = ["TTh", "Th", "H", "T", "O"];
+  const MINUS = "−";
+
+  const COLOURS = {
+    grid: "#cfd4de",
+    gridEdge: "#aab0bd",
+    headingFill: "#edf0f6",
+    headingText: "#4a4455",
+  };
+
+  const newSeed = () => Math.floor(Math.random() * 2147483647);
+
+  const DEFAULTS = {
+    name: "",
+    title: "Maths practice",
+    ops: "both",
+    tens: true,
+    hundreds: true,
+    thousands: true,
+    exchange: true,
+    pages: "3",
+    space: "big",
+    headings: true,
+    answers: true,
+    seed: newSeed(),
+  };
+
+  // ---------- Making the sums ----------
+
+  // Small seeded random generator, so the preview and the printout show the same sums.
+  function seededRandom(seed) {
+    let a = seed >>> 0;
+    return () => {
+      a = (a + 0x6d2b79f5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  // True when the column method needs a carry (adding) or a borrow (taking away) somewhere.
+  function needsExchange(a, b, op) {
+    for (let x = a, y = b; x > 0 || y > 0; x = Math.floor(x / 10), y = Math.floor(y / 10)) {
+      const da = x % 10;
+      const db = y % 10;
+      if (op === "+" ? da + db > 9 : da < db) return true;
+    }
+    return false;
+  }
+
+  function makeSums(s) {
+    const sizes = Object.keys(DIGITS).filter((k) => s[k]).map((k) => DIGITS[k]);
+    if (!sizes.length) return [];
+
+    const rand = seededRandom(s.seed);
+    const pick = (list) => list[Math.floor(rand() * list.length)];
+    const number = (digits) => 10 ** (digits - 1) + Math.floor(rand() * 9 * 10 ** (digits - 1));
+    const ops = s.ops === "add" ? ["+"] : s.ops === "sub" ? [MINUS] : ["+", MINUS];
+    const firstOp = Math.floor(rand() * ops.length);
+    const count = (Number(s.pages) || 1) * SUMS_PER_PAGE;
+    const seen = new Set();
+    const sums = [];
+
+    for (let i = 0; i < count; i++) {
+      const op = ops[(firstOp + i) % ops.length];
+      let chosen = null;
+      let fallback = null;
+
+      for (let tries = 0; tries < 500 && !chosen; tries++) {
+        let lenA = pick(sizes);
+        let lenB = pick(sizes);
+        if (lenB > lenA) [lenA, lenB] = [lenB, lenA];
+        let a = number(lenA);
+        let b = number(lenB);
+        if (b > a) [a, b] = [b, a];
+        if (op === MINUS && a === b) continue;
+        if (seen.has(`${a}${op}${b}`)) continue;
+
+        const sum = { a, b, op, answer: op === "+" ? a + b : a - b };
+        fallback = fallback || sum;
+        if (needsExchange(a, b, op) === Boolean(s.exchange)) chosen = sum;
+      }
+
+      const sum = chosen || fallback;
+      if (!sum) continue;
+      seen.add(`${sum.a}${sum.op}${sum.b}`);
+      sums.push(sum);
+    }
+    return sums;
+  }
+
+  // ---------- Drawing ----------
+
+  function squares({ width, height, sq, labels }) {
+    const cols = Math.floor(width / sq);
+    const rows = Math.floor(height / sq);
+    const w = cols * sq;
+    const h = rows * sq;
+    let out = "";
+
+    // Place value headings sit one square in, leaving room for the + or − sign.
+    labels.forEach((label, i) => {
+      const x = (i + 1) * sq;
+      out += `<rect x="${r2(x)}" y="0" width="${sq}" height="${sq}" fill="${COLOURS.headingFill}"/>`;
+      out += `<text x="${r2(x + sq / 2)}" y="${r2(sq * 0.66)}" font-size="${r2(sq * 0.38)}" font-weight="700" text-anchor="middle" fill="${COLOURS.headingText}">${label}</text>`;
+    });
+    for (let c = 1; c < cols; c++) {
+      out += `<line x1="${r2(c * sq)}" x2="${r2(c * sq)}" y1="0" y2="${r2(h)}" stroke="${COLOURS.grid}" stroke-width="0.2"/>`;
+    }
+    for (let r = 1; r < rows; r++) {
+      out += `<line x1="0" x2="${r2(w)}" y1="${r2(r * sq)}" y2="${r2(r * sq)}" stroke="${COLOURS.grid}" stroke-width="0.2"/>`;
+    }
+    out += `<rect x="0" y="0" width="${r2(w)}" height="${r2(h)}" fill="none" stroke="${COLOURS.gridEdge}" stroke-width="0.3"/>`;
+    return `<svg width="${r2(w)}mm" height="${r2(h)}mm" viewBox="0 0 ${r2(w)} ${r2(h)}" aria-hidden="true">${out}</svg>`;
+  }
+
+  function workingSpace(s, sum, height) {
+    if (s.space === "blank") return `<div class="blank-space" style="height:${r2(height)}mm"></div>`;
+    const digits = Math.max(...[sum.a, sum.b, sum.answer].map((n) => String(n).length), 2);
+    const labels = s.headings ? PLACE_VALUES.slice(PLACE_VALUES.length - digits) : [];
+    return squares({ width: PAGE.CONTENT_W, height, sq: SQUARE[s.space], labels });
+  }
+
+  const calcText = (sum) => `${sum.a} ${sum.op} ${sum.b} =`;
+
+  function questionPages(s, sums) {
+    const headH = hasHead(s) ? HEAD_H : 0;
+    const blockH = (PAGE.CONTENT_H - headH - (SUMS_PER_PAGE - 1) * BLOCK_GAP) / SUMS_PER_PAGE;
+    const spaceH = blockH - QUESTION_H - QUESTION_GAP;
+
+    return chunk(sums, SUMS_PER_PAGE).map((group, p) => {
+      const blocks = group.map((sum, i) => `<section class="q" style="height:${r2(blockH)}mm">
+          <div class="q-row">
+            <span class="q-num">${p * SUMS_PER_PAGE + i + 1}</span>
+            <span class="q-calc">${calcText(sum)}</span>
+            <span class="q-answer"></span>
+          </div>
+          ${workingSpace(s, sum, spaceH)}
+        </section>`);
+      return `${sheetHead(s)}<div class="qs">${blocks.join("")}</div>`;
+    });
+  }
+
+  function answersPage(s, sums) {
+    const items = sums
+      .map((sum, i) => `<li><span class="n">${i + 1}.</span><span>${calcText(sum)} <b>${sum.answer}</b></span></li>`)
+      .join("");
+    const sub = [s.name.trim(), s.title.trim()].filter(Boolean).map(esc).join(" · ");
+    return {
+      label: "Answers",
+      html: `<header class="answers-head"><h2>Answers</h2>${sub ? `<p>${sub}</p>` : ""}</header><ol class="answers">${items}</ol>`,
+    };
+  }
+
+  function build(s) {
+    const sums = makeSums(s);
+    if (!sums.length) {
+      return { empty: "Tick at least one number size to make some sums.", summary: "Pick a number size to print." };
+    }
+    const pages = questionPages(s, sums);
+    if (s.answers) pages.push(answersPage(s, sums));
+    const sheets = Math.ceil(sums.length / SUMS_PER_PAGE);
+    return {
+      pages,
+      summary: `${plural(sums.length, "sum")} · ${plural(sheets, "page")}${s.answers ? " + answers" : ""} · A4`,
+    };
+  }
+
+  const app = window.SheetApp.start({ storeKey: "maths-sheets:v1", defaults: DEFAULTS, build });
+
+  document.getElementById("newSums").addEventListener("click", () => {
+    app.state.seed = newSeed();
+    app.save();
+    app.render();
+  });
+
+  // Keep the first set of sums, so a reload shows the same ones that were printed.
+  app.save();
+  app.render();
+})();
+</script>
+</body>
+</html>

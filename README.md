@@ -1,10 +1,12 @@
 # KidsLearningApp
 
-## Spelling Sheets
+Printable A4 practice sheets for the kids, at https://clugsrepo.github.io/KidsLearningApp/
 
-A single web page (`index.html`) that turns a list of spelling words into printable A4 practice sheets.
+Use the **Spellings / Maths** switch at the top to move between the two pages. Settings are remembered in the browser for next time. Nothing is sent anywhere.
 
-**To use it:** go to https://clugsrepo.github.io/KidsLearningApp/ (or open `index.html` in Chrome, Safari or Edge), type the week's words (one per line), check the preview and press **Print**.
+## Spelling Sheets (`index.html`)
+
+Type the week's words (one per line), check the preview and press **Print**.
 
 ### Sheet types
 
@@ -19,8 +21,21 @@ A single web page (`index.html`) that turns a list of spelling words into printa
 - School print letters (single-storey a and g) or a handwritten style.
 - Trace the word first: a pale copy of the word on the first line to write over.
 
-Words, name, title and settings are remembered in the browser for next time. Nothing is sent anywhere.
+## Maths Sheets (`maths.html`)
 
-### Printing tips
+Two sums per page, each with a box for the answer and space underneath to work it out.
+
+- **Sums**: adding, taking away, or both.
+- **Number sizes**: tens, hundreds and thousands (like 47, 382 and 5164). Tick more than one to mix them.
+- **Include exchanging**: every sum needs carrying or borrowing. Untick it for easier sums with none.
+- **Working-out space**: big (1 cm) squares, small (7 mm) squares, or blank. Place value headings (TTh, Th, H, T, O) can sit along the top of the squares.
+- **Answers page**: printed last, for checking.
+- **New sums** makes a fresh set with the same settings. The sums stay the same until you press it, so a reprint matches.
+
+## How it's built
+
+Plain HTML, CSS and JavaScript with no build step. `app.css` and `sheet-app.js` hold the shared look, saved settings, preview and printing; each page adds its own sheet layouts. Sheets are laid out in millimetres so the printout matches the preview.
+
+## Printing tips
 
 Choose A4 paper. If a sheet spills onto a second page, set margins to **None** (or Default) in the print box.
