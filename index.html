@@ -1,0 +1,793 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Spelling Sheets</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Lexend:wght@400;500;600&family=Patrick+Hand&display=swap">
+<style>
+/* Layout: settings panel on the left, a live A4 preview on the "desk" to the right; stacks on phones. */
+:root {
+  --ink: #2c2142;          /* marker purple from the practice sheets */
+  --ink-hover: #3d2f5c;
+  --card: #f7eb8f;         /* yellow school spelling card */
+  --card-edge: #e3d25a;
+  --ground: #f2f3f7;
+  --desk: #e4e6ee;
+  --panel: #ffffff;
+  --text: #231e2d;
+  --muted: #6a6475;
+  --line: #dddae4;
+  --focus: #6a4fd6;
+  --font-display: "Andika", "Century Gothic", "Avenir Next", "Trebuchet MS", sans-serif;
+  --font-ui: "Lexend", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--ground);
+  color: var(--text);
+  font: 400 15px/1.5 var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+}
+
+.app {
+  display: grid;
+  grid-template-columns: minmax(320px, 390px) minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+/* ---------- Settings panel ---------- */
+.panel {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  background: var(--panel);
+  border-right: 1px solid var(--line);
+  padding: 28px 24px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.brand { display: flex; gap: 14px; align-items: center; }
+.brand-card {
+  flex: none;
+  width: 46px;
+  height: 58px;
+  border-radius: 4px;
+  background: var(--card);
+  border: 1px solid var(--card-edge);
+  display: grid;
+  place-items: center;
+  font: 700 17px/1 var(--font-display);
+  color: var(--text);
+  transform: rotate(-4deg);
+  box-shadow: 0 2px 6px rgba(60, 50, 20, 0.12);
+}
+.brand h1 {
+  margin: 0;
+  font: 700 26px/1.1 var(--font-display);
+  letter-spacing: -0.01em;
+}
+.brand p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+label, legend { font-weight: 500; font-size: 14px; }
+.hint { margin: 0; color: var(--muted); font-size: 13px; }
+
+input[type="text"], textarea {
+  width: 100%;
+  font: 400 16px/1.4 var(--font-ui);
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+textarea {
+  font: 400 20px/1.45 var(--font-display);
+  resize: vertical;
+  min-height: 170px;
+}
+input[type="text"]:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+
+.chip {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.link-btn {
+  border: 0;
+  background: none;
+  padding: 2px 0;
+  font: 500 13px var(--font-ui);
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.link-btn:hover { color: var(--text); }
+.link-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+
+.pair { display: grid; grid-template-columns: 1fr 1.4fr; gap: 12px; }
+
+fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+legend { padding: 0; margin-bottom: 8px; }
+
+/* Sheet type cards */
+.types { display: grid; gap: 8px; }
+.type {
+  position: relative;
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  cursor: pointer;
+  background: var(--panel);
+}
+.type input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.type:has(input:checked) { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.type:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
+.type svg { width: 34px; height: 44px; display: block; }
+.type strong { display: block; font-weight: 500; font-size: 15px; }
+.type span { display: block; color: var(--muted); font-size: 13px; line-height: 1.35; }
+
+/* Segmented choices */
+.options { display: grid; gap: 18px; }
+.seg-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg-row label { position: relative; font-weight: 400; }
+.seg-row input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.seg-row span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  font-size: 14px;
+  white-space: nowrap;
+}
+.seg-row label:hover span { border-color: #bdb8c8; }
+.seg-row input:checked + span { background: var(--card); border-color: var(--card-edge); font-weight: 600; }
+.seg-row input:focus-visible + span { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+.check { display: flex; gap: 10px; align-items: flex-start; font-weight: 400; cursor: pointer; }
+.check input { width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--ink); flex: none; }
+.check small { display: block; color: var(--muted); font-size: 13px; }
+
+/* Print button stays in reach while the settings scroll */
+.print-box {
+  position: sticky;
+  bottom: 0;
+  margin-top: auto;
+  padding: 14px 0 calc(20px + env(safe-area-inset-bottom, 0px));
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 8px;
+}
+.btn-primary {
+  height: 52px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--ink);
+  color: #ffffff;
+  font: 600 17px var(--font-ui);
+  cursor: pointer;
+}
+.btn-primary:hover { background: var(--ink-hover); }
+.btn-primary:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+.summary { margin: 0; text-align: center; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* ---------- Preview ---------- */
+.preview {
+  --z: 0.6;
+  background: var(--desk);
+  padding: 32px 24px 48px;
+  min-width: 0;
+}
+.sheets { display: flex; flex-direction: column; align-items: center; gap: 28px; }
+.page { display: flex; flex-direction: column; gap: 8px; }
+.page-label {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.sheet-wrap {
+  width: calc(210mm * var(--z));
+  height: calc(297mm * var(--z));
+  overflow: hidden;
+  border-radius: 2px;
+  box-shadow: 0 1px 2px rgba(35, 25, 60, 0.08), 0 10px 28px rgba(35, 25, 60, 0.12);
+}
+.empty {
+  margin: 80px auto;
+  max-width: 28ch;
+  text-align: center;
+  color: var(--muted);
+  font-size: 16px;
+}
+
+/* ---------- The printed sheet (all sizes in mm) ---------- */
+.sheet {
+  width: 210mm;
+  height: 297mm;
+  padding: 14mm 16mm;
+  background: #ffffff;
+  color: #1f1a2b;
+  font-family: var(--sheet-font, var(--font-display));
+  overflow: hidden;
+  transform: scale(var(--z));
+  transform-origin: 0 0;
+  display: flex;
+  flex-direction: column;
+}
+.sheet svg { display: block; overflow: visible; }
+
+.sheet-head {
+  flex: none;
+  display: flex;
+  justify-content: space-between;
+  gap: 6mm;
+  font-size: 4.2mm;
+  line-height: 1.2;
+  color: #77727f;
+}
+
+.blocks { display: flex; flex-direction: column; gap: 8mm; }
+.block { flex: none; display: flex; flex-direction: column; }
+.model {
+  flex: none;
+  display: flex;
+  align-items: center;
+  line-height: 1;
+  white-space: nowrap;
+  padding-left: 1mm;
+}
+
+.lcwc { display: grid; border-top: 0.3mm solid #b5b0bd; border-left: 0.3mm solid #b5b0bd; }
+.lcwc > div {
+  border-right: 0.3mm solid #b5b0bd;
+  border-bottom: 0.3mm solid #b5b0bd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+.lcwc .th { font-size: 3.6mm; font-weight: 700; color: #4a4455; text-align: center; line-height: 1.1; padding: 0 1mm; }
+.lcwc .fold { border-right: 0.5mm dashed #8d8896; }
+.lcwc .look { justify-content: flex-start; padding-left: 3mm; white-space: nowrap; line-height: 1; }
+.lcwc .box { width: 7mm; height: 7mm; border: 0.3mm solid #8d8896; border-radius: 1.2mm; }
+.fold-note { margin: 3mm 0 0; font-size: 3.4mm; color: #77727f; }
+
+.test-head { flex: none; display: flex; flex-direction: column; gap: 2mm; }
+.test-head h2 { margin: 0; font-size: 9mm; line-height: 1; font-weight: 700; }
+.test-head .sub { margin: 0; font-size: 4.4mm; color: #77727f; }
+.test-meta { display: flex; justify-content: space-between; gap: 6mm; margin-top: 3mm; font-size: 4.6mm; }
+
+/* ---------- Phones ---------- */
+@media (max-width: 860px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .panel {
+    position: static;
+    height: auto;
+    overflow: visible;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    padding: 22px 16px 0;
+  }
+  .preview { padding: 24px 16px 150px; }
+  .print-box {
+    position: fixed;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -6px 20px rgba(35, 25, 60, 0.08);
+  }
+  .panel { padding-bottom: 8px; }
+}
+@media (max-width: 380px) {
+  .pair { grid-template-columns: 1fr; }
+}
+
+/* ---------- Printing ---------- */
+@page { size: A4 portrait; margin: 0; }
+@media print {
+  html, body { background: #ffffff; }
+  .panel, .page-label, .empty { display: none !important; }
+  .app { display: block; min-height: 0; }
+  .preview { padding: 0; background: #ffffff; }
+  .sheets { display: block; }
+  .page { display: block; break-after: page; page-break-after: always; }
+  .page:last-child { break-after: auto; page-break-after: auto; }
+  .sheet-wrap { width: auto; height: auto; box-shadow: none; border-radius: 0; overflow: visible; }
+  .sheet { transform: none; height: 296.5mm; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <form class="panel" id="controls" autocomplete="off" novalidate>
+    <header class="brand">
+      <div class="brand-card" aria-hidden="true">abc</div>
+      <div>
+        <h1>Spelling Sheets</h1>
+        <p>Type this week's words, check the preview, then print.</p>
+      </div>
+    </header>
+
+    <div class="field">
+      <div class="field-head">
+        <label for="words">Spelling words</label>
+        <span class="chip" id="wordCount">0 words</span>
+      </div>
+      <textarea id="words" name="words" rows="7" spellcheck="false" autocapitalize="off" autocorrect="off"></textarea>
+      <div class="field-head">
+        <p class="hint">One word per line. Commas work too.</p>
+        <button type="button" class="link-btn" id="clearWords">Clear</button>
+      </div>
+    </div>
+
+    <div class="pair">
+      <div class="field">
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" autocapitalize="words" placeholder="Child's name">
+      </div>
+      <div class="field">
+        <label for="title">List title</label>
+        <input type="text" id="title" name="title">
+      </div>
+    </div>
+
+    <fieldset>
+      <legend>Sheet</legend>
+      <div class="types">
+        <label class="type">
+          <input type="radio" name="type" value="practice">
+          <svg viewBox="0 0 34 44" aria-hidden="true"><rect x="0.5" y="0.5" width="33" height="43" rx="2" fill="#fff" stroke="#c9c5d1"/><rect x="5" y="5" width="13" height="3.5" rx="1" fill="#2c2142"/><path d="M5 12h24M5 15.5h24M5 19h24" stroke="#b5b0bd" stroke-width="0.8"/><rect x="5" y="24" width="10" height="3.5" rx="1" fill="#2c2142"/><path d="M5 31h24M5 34.5h24M5 38h24" stroke="#b5b0bd" stroke-width="0.8"/></svg>
+          <div><strong>Practice lines</strong><span>The word at the top, lines to copy it underneath.</span></div>
+        </label>
+        <label class="type">
+          <input type="radio" name="type" value="lcwc">
+          <svg viewBox="0 0 34 44" aria-hidden="true"><rect x="0.5" y="0.5" width="33" height="43" rx="2" fill="#fff" stroke="#c9c5d1"/><path d="M4 6h26v32H4zM4 11h26M4 18h26M4 25h26M4 32h26M17 6v32M23 6v32" fill="none" stroke="#b5b0bd" stroke-width="0.8"/><path d="M11 6v32" stroke="#6a6475" stroke-width="0.8" stroke-dasharray="1.5 1"/><path d="M5.5 14.5h4M5.5 21.5h4M5.5 28.5h4M5.5 35.5h4" stroke="#2c2142" stroke-width="2"/></svg>
+          <div><strong>Look, cover, write, check</strong><span>Fold to hide the word, then write it from memory.</span></div>
+        </label>
+        <label class="type">
+          <input type="radio" name="type" value="test">
+          <svg viewBox="0 0 34 44" aria-hidden="true"><rect x="0.5" y="0.5" width="33" height="43" rx="2" fill="#fff" stroke="#c9c5d1"/><rect x="5" y="5" width="16" height="4" rx="1" fill="#2c2142"/><g fill="#6a6475"><circle cx="6.5" cy="16" r="1.2"/><circle cx="6.5" cy="22.5" r="1.2"/><circle cx="6.5" cy="29" r="1.2"/><circle cx="6.5" cy="35.5" r="1.2"/></g><path d="M10 17h19M10 23.5h19M10 30h19M10 36.5h19" stroke="#b5b0bd" stroke-width="0.8"/></svg>
+          <div><strong>Spelling test</strong><span>Numbered lines for a quick test at the end of the week.</span></div>
+        </label>
+      </div>
+    </fieldset>
+
+    <div class="options">
+      <fieldset data-for="practice">
+        <legend>Words per page</legend>
+        <div class="seg-row">
+          <label><input type="radio" name="perPage" value="1"><span>1</span></label>
+          <label><input type="radio" name="perPage" value="2"><span>2</span></label>
+          <label><input type="radio" name="perPage" value="3"><span>3</span></label>
+          <label><input type="radio" name="perPage" value="4"><span>4</span></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Line size</legend>
+        <div class="seg-row">
+          <label><input type="radio" name="size" value="big"><span>Big</span></label>
+          <label><input type="radio" name="size" value="medium"><span>Medium</span></label>
+          <label><input type="radio" name="size" value="small"><span>Small</span></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Lines</legend>
+        <div class="seg-row">
+          <label><input type="radio" name="lines" value="plain"><span>Plain lines</span></label>
+          <label><input type="radio" name="lines" value="guides"><span>Handwriting guides</span></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Letters</legend>
+        <div class="seg-row">
+          <label><input type="radio" name="letters" value="print"><span>School print</span></label>
+          <label><input type="radio" name="letters" value="hand"><span>Handwritten</span></label>
+        </div>
+      </fieldset>
+
+      <label class="check" data-for="practice">
+        <input type="checkbox" name="trace">
+        <span>Trace the word first<small>Adds a pale copy of the word on the first line to write over.</small></span>
+      </label>
+    </div>
+
+    <div class="print-box">
+      <button type="button" class="btn-primary" id="printBtn">Print</button>
+      <p class="summary" id="summary"></p>
+    </div>
+  </form>
+
+  <main class="preview" id="preview" aria-label="Print preview">
+    <div class="sheets" id="sheets"></div>
+  </main>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  const STORE_KEY = "spelling-sheets:v1";
+
+  // A4 in millimetres. Everything on the sheet is laid out in mm so print matches the preview.
+  const PAGE_W = 210;
+  const PAGE_H = 297;
+  const PAD_X = 16;
+  const PAD_Y = 14;
+  const CONTENT_W = PAGE_W - PAD_X * 2;
+  const CONTENT_H = PAGE_H - PAD_Y * 2 - 1;
+  const HEAD_H = 12;
+  const BLOCK_GAP = 8;
+  const PX_PER_MM = 96 / 25.4;
+
+  const FAMILIES = { print: "Andika", hand: "Patrick Hand" };
+  const FALLBACK = '"Century Gothic", "Avenir Next", "Trebuchet MS", sans-serif';
+
+  // Gap between writing lines. Handwriting guides need more room for their four lines.
+  const PITCH = {
+    plain: { big: 16, medium: 13, small: 10 },
+    guides: { big: 24, medium: 19, small: 15 },
+  };
+  // Share of each line's height that the letters fill; the rest is breathing room.
+  const ZONE = { plain: 0.85, guides: 0.7 };
+  // Size of the model word at the top of each practice block, by words per page.
+  const MODEL_SIZE = { 1: 30, 2: 22, 3: 17, 4: 14 };
+  const LCWC_COLS = [48, 52, 13, 52, 13];
+  const LCWC_HEADINGS = ["Look and say", "Cover and write", "Check", "Write it again", "Check"];
+
+  const COLOURS = {
+    rule: "#a9a5b0",
+    guide: "#c4c0ca",
+    base: "#8d8896",
+    trace: "#cac6d0",
+    number: "#77727f",
+  };
+
+  const DEFAULTS = {
+    words: "because\nonce\neye\nlaugh",
+    name: "",
+    title: "Year 2 Spellings · Week 5",
+    type: "practice",
+    perPage: "2",
+    size: "big",
+    lines: "plain",
+    letters: "print",
+    trace: false,
+  };
+
+  const form = document.getElementById("controls");
+  const preview = document.getElementById("preview");
+  const sheetsEl = document.getElementById("sheets");
+  const printBtn = document.getElementById("printBtn");
+  const summaryEl = document.getElementById("summary");
+  const wordCountEl = document.getElementById("wordCount");
+
+  const state = loadState();
+
+  function loadState() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORE_KEY) || "null");
+      if (saved && typeof saved === "object") return { ...DEFAULTS, ...saved };
+    } catch (e) { /* storage unavailable: use defaults */ }
+    return { ...DEFAULTS };
+  }
+
+  function saveState() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* not saved, still works */ }
+  }
+
+  // ---------- Helpers ----------
+
+  const r2 = (n) => Math.round(n * 100) / 100;
+  const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+  function esc(text) {
+    return String(text).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  function chunk(list, size) {
+    const out = [];
+    for (let i = 0; i < list.length; i += size) out.push(list.slice(i, i + size));
+    return out;
+  }
+
+  function parseWords(text) {
+    const seen = new Set();
+    return text
+      .split(/[\n,;]+/)
+      .map((w) => w.replace(/^\s*\d+[.)]\s*/, "").trim().replace(/\s+/g, " "))
+      .filter((w) => {
+        const key = w.toLowerCase();
+        if (!w || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+  }
+
+  // ---------- Font measuring (so trace letters sit exactly on the lines) ----------
+
+  const ctx = document.createElement("canvas").getContext("2d");
+  const metricCache = new Map();
+
+  function fontCss(family, weight = 400) {
+    return `${weight} 100px "${family}", ${FALLBACK}`;
+  }
+
+  // Heights in em: top of tall letters, top of small letters, bottom of tails.
+  function fontMetrics(family) {
+    if (metricCache.has(family)) return metricCache.get(family);
+    ctx.font = fontCss(family);
+    const asc = ctx.measureText("bdhkl").actualBoundingBoxAscent / 100;
+    const xh = ctx.measureText("xvwz").actualBoundingBoxAscent / 100;
+    const desc = ctx.measureText("gjpqy").actualBoundingBoxDescent / 100;
+    const ok = asc > 0.4 && xh > 0.25 && desc > 0.1 && xh < asc;
+    const m = ok ? { asc, xh, desc } : { asc: 0.74, xh: 0.5, desc: 0.24 };
+    metricCache.set(family, m);
+    return m;
+  }
+
+  function widthEm(text, family, weight = 400) {
+    ctx.font = fontCss(family, weight);
+    return ctx.measureText(text).width / 100 || text.length * 0.55;
+  }
+
+  // ---------- Drawing ----------
+
+  function hline(x1, x2, y, colour, width, dash) {
+    const dashAttr = dash ? ` stroke-dasharray="${dash}"` : "";
+    return `<line x1="${r2(x1)}" x2="${r2(x2)}" y1="${r2(y)}" y2="${r2(y)}" stroke="${colour}" stroke-width="${width}"${dashAttr}/>`;
+  }
+
+  // A stack of writing lines as one SVG, in mm. Optional pale trace word on the first line,
+  // and optional numbers down the left for the test sheet.
+  function writingLines({ width, rows, pitch, family, trace = null, numberFrom = null, indent = 0 }) {
+    const style = state.lines;
+    const m = fontMetrics(family);
+    const size = (ZONE[style] * pitch) / (m.asc + m.desc);
+    const top = (pitch - (m.asc + m.desc) * size) / 2;
+    const height = rows * pitch;
+    let out = "";
+
+    for (let i = 0; i < rows; i++) {
+      const base = i * pitch + top + m.asc * size;
+      if (style === "guides") {
+        out += hline(indent, width, base - m.asc * size, COLOURS.guide, 0.25);
+        out += hline(indent, width, base - m.xh * size, COLOURS.guide, 0.25, "1.6 1.2");
+        out += hline(indent, width, base, COLOURS.base, 0.35);
+      } else {
+        out += hline(indent, width, base, COLOURS.rule, 0.3);
+      }
+      if (numberFrom !== null) {
+        out += `<text x="0" y="${r2(base)}" font-size="${r2(Math.min(size * 0.55, 7))}" fill="${COLOURS.number}">${numberFrom + i}.</text>`;
+      }
+      if (trace && i === 0) {
+        const fit = Math.min(size, (width - indent - 4) / widthEm(trace, family));
+        out += `<text x="${r2(indent + 2)}" y="${r2(base)}" font-size="${r2(fit)}" fill="${COLOURS.trace}">${esc(trace)}</text>`;
+      }
+    }
+    return `<svg width="${r2(width)}mm" height="${r2(height)}mm" viewBox="0 0 ${r2(width)} ${r2(height)}" aria-hidden="true">${out}</svg>`;
+  }
+
+  function hasHead() {
+    return Boolean(state.name.trim() || state.title.trim());
+  }
+
+  function sheetHead() {
+    if (!hasHead()) return "";
+    return `<header class="sheet-head" style="height:${HEAD_H}mm"><span>${esc(state.name.trim())}</span><span>${esc(state.title.trim())}</span></header>`;
+  }
+
+  // ---------- Sheet types ----------
+
+  function practicePages(words) {
+    const per = Number(state.perPage) || 2;
+    const family = FAMILIES[state.letters];
+    const pitch = PITCH[state.lines][state.size];
+    const headH = hasHead() ? HEAD_H : 0;
+    const blockH = (CONTENT_H - headH - (per - 1) * BLOCK_GAP) / per;
+    const modelMax = MODEL_SIZE[per];
+    const modelH = modelMax * 1.35;
+    const rows = Math.max(1, Math.floor((blockH - modelH) / pitch));
+
+    const pages = chunk(words, per).map((group) => {
+      const blocks = group.map((word) => {
+        const size = Math.min(modelMax, (CONTENT_W - 4) / widthEm(word, family));
+        return `<section class="block" style="height:${r2(blockH)}mm">
+          <div class="model" style="height:${r2(modelH)}mm;font-size:${r2(size)}mm">${esc(word)}</div>
+          ${writingLines({ width: CONTENT_W, rows, pitch, family, trace: state.trace ? word : null })}
+        </section>`;
+      });
+      return `${sheetHead()}<div class="blocks">${blocks.join("")}</div>`;
+    });
+    return { pages, detail: `${plural(rows, "line")} per word` };
+  }
+
+  function lcwcPages(words) {
+    const family = FAMILIES[state.letters];
+    const pitch = PITCH[state.lines][state.size];
+    const rowH = pitch + 6;
+    const tableHeadH = 11;
+    const noteH = 9;
+    const headH = hasHead() ? HEAD_H : 0;
+    const perPage = Math.max(1, Math.floor((CONTENT_H - headH - tableHeadH - noteH) / rowH));
+    const cols = LCWC_COLS.map((w) => `${w}mm`).join(" ");
+    const heads = LCWC_HEADINGS.map((h, i) => `<div class="th${i === 0 ? " fold" : ""}">${h}</div>`).join("");
+    const write = (w) => `<div>${writingLines({ width: w - 5, rows: 1, pitch, family })}</div>`;
+    const tick = `<div><span class="box"></span></div>`;
+
+    const pages = chunk(words, perPage).map((group) => {
+      const rows = group.map((word) => {
+        const size = Math.min(rowH * 0.48, (LCWC_COLS[0] - 7) / widthEm(word, family));
+        return `<div class="look fold" style="font-size:${r2(size)}mm">${esc(word)}</div>${write(LCWC_COLS[1])}${tick}${write(LCWC_COLS[3])}${tick}`;
+      });
+      return `${sheetHead()}
+        <div class="lcwc" style="grid-template-columns:${cols};grid-template-rows:${tableHeadH}mm;grid-auto-rows:${rowH}mm">${heads}${rows.join("")}</div>
+        <p class="fold-note">Fold along the dashed line to hide the words.</p>`;
+    });
+    return { pages, detail: `${plural(perPage, "word")} per page` };
+  }
+
+  function testPages(words) {
+    const family = FAMILIES[state.letters];
+    const pitch = PITCH[state.lines][state.size] * 1.15;
+    const testHeadH = 32;
+    const perPage = Math.max(1, Math.floor((CONTENT_H - testHeadH) / pitch));
+    const name = state.name.trim();
+
+    const testHead = `<header class="test-head" style="height:${testHeadH}mm">
+        <h2>Spelling test</h2>
+        ${state.title.trim() ? `<p class="sub">${esc(state.title.trim())}</p>` : ""}
+        <div class="test-meta">
+          <span>Name: ${name ? esc(name) : "______________"}</span>
+          <span>Date: ____________</span>
+          <span>Score: ____ / ${words.length}</span>
+        </div>
+      </header>`;
+
+    const pages = chunk(words, perPage).map((group, i) =>
+      `${i === 0 ? testHead : sheetHead()}${writingLines({ width: CONTENT_W, rows: group.length, pitch, family, numberFrom: i * perPage + 1, indent: 12 })}`
+    );
+    return { pages, detail: "read the words out loud" };
+  }
+
+  const BUILDERS = { practice: practicePages, lcwc: lcwcPages, test: testPages };
+
+  // ---------- Render ----------
+
+  function render() {
+    const words = parseWords(state.words);
+    wordCountEl.textContent = plural(words.length, "word");
+
+    document.querySelectorAll("[data-for]").forEach((el) => {
+      el.hidden = !el.dataset.for.split(" ").includes(state.type);
+    });
+
+    sheetsEl.style.setProperty("--sheet-font", `"${FAMILIES[state.letters]}", ${FALLBACK}`);
+
+    if (!words.length) {
+      sheetsEl.innerHTML = `<p class="empty">Type a spelling word and the sheets will appear here.</p>`;
+      printBtn.disabled = true;
+      printBtn.textContent = "Print";
+      summaryEl.textContent = "Add at least one word to print.";
+      return;
+    }
+
+    const build = BUILDERS[state.type] || practicePages;
+    const { pages, detail } = build(words);
+    sheetsEl.innerHTML = pages
+      .map((html, i) => `<div class="page">
+          <p class="page-label">Page ${i + 1} of ${pages.length}</p>
+          <div class="sheet-wrap"><div class="sheet">${html}</div></div>
+        </div>`)
+      .join("");
+
+    printBtn.disabled = false;
+    printBtn.textContent = `Print ${plural(pages.length, "page")}`;
+    summaryEl.textContent = `${plural(words.length, "word")} · A4 · ${detail}`;
+  }
+
+  function fitPreview() {
+    const available = preview.clientWidth - 48;
+    const zoom = Math.max(0.2, Math.min(0.85, available / (PAGE_W * PX_PER_MM)));
+    preview.style.setProperty("--z", zoom.toFixed(3));
+  }
+
+  // ---------- Controls ----------
+
+  function fillControls() {
+    for (const el of form.elements) {
+      if (!el.name || !(el.name in state)) continue;
+      if (el.type === "radio") el.checked = String(state[el.name]) === el.value;
+      else if (el.type === "checkbox") el.checked = Boolean(state[el.name]);
+      else el.value = state[el.name];
+    }
+  }
+
+  function onChange(e) {
+    const el = e.target;
+    if (!el.name || !(el.name in state)) return;
+    if (el.type === "radio") { if (el.checked) state[el.name] = el.value; }
+    else if (el.type === "checkbox") state[el.name] = el.checked;
+    else state[el.name] = el.value;
+    saveState();
+    render();
+  }
+
+  form.addEventListener("input", onChange);
+  form.addEventListener("change", onChange);
+  form.addEventListener("submit", (e) => e.preventDefault());
+
+  document.getElementById("clearWords").addEventListener("click", () => {
+    state.words = "";
+    form.elements.words.value = "";
+    saveState();
+    render();
+    form.elements.words.focus();
+  });
+
+  printBtn.addEventListener("click", async () => {
+    try { await document.fonts.ready; } catch (e) { /* print anyway */ }
+    window.print();
+  });
+
+  if ("ResizeObserver" in window) new ResizeObserver(fitPreview).observe(preview);
+  else window.addEventListener("resize", fitPreview);
+
+  fillControls();
+  fitPreview();
+  render();
+
+  // Measure again once the web fonts arrive, so letters line up with the guides.
+  if (document.fonts && document.fonts.load) {
+    Promise.all([
+      document.fonts.load('400 40px "Andika"'),
+      document.fonts.load('700 40px "Andika"'),
+      document.fonts.load('400 40px "Patrick Hand"'),
+    ]).catch(() => {}).then(() => {
+      metricCache.clear();
+      render();
+    });
+  }
+})();
+</script>
+</body>
+</html>
