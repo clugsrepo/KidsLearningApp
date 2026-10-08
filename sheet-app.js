@@ -36,7 +36,8 @@
   // build(state) returns { pages, summary, font?, empty? }. A page is an HTML string,
   // or { html, label } to add a note such as "Answers" to its preview label.
   // migrate(state) can update settings saved by an older version of the page.
-  function start({ storeKey, defaults, build, migrate }) {
+  // beforePrint() runs when Print is pressed, before the print box opens.
+  function start({ storeKey, defaults, build, migrate, beforePrint }) {
     const form = document.getElementById("controls");
     const preview = document.getElementById("preview");
     const sheetsEl = document.getElementById("sheets");
@@ -121,6 +122,7 @@
     form.addEventListener("submit", (e) => e.preventDefault());
 
     printBtn.addEventListener("click", async () => {
+      if (beforePrint) beforePrint();
       try { await document.fonts.ready; } catch (e) { /* print anyway */ }
       window.print();
     });

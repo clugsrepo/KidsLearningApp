@@ -30,7 +30,7 @@ Two sums per page, each with a box for the answer and space underneath to work i
 - **Include exchanging**: every sum needs carrying or borrowing. Untick it for easier sums with none.
 - **Working-out space**: big (1 cm) squares, small (7 mm) squares, or blank. Place value headings (TTh, Th, H, T, O) can sit along the top of the squares.
 - **Answers**: printed after the sums. **With workings** shows each sum done in columns (carries and exchanges marked) with a step for each column, starting from the ones. **Answers only** is a single list. Or **None**.
-- **New sums** makes a fresh set with the same settings. The sums stay the same until you press it, so a reprint matches.
+- **Fresh sums every time**: a new set each time the page opens, each time you press Print, and when you come back to the page after half an hour. **New sums** swaps the set straight away. The answers always match the sums they print with.
 
 ## How it's built
 
