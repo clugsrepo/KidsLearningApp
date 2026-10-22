@@ -93,12 +93,22 @@ local function darkFlip(_, inputState)
 	end
 	weld.C0 = start
 
-	showTrickText("DARK FLIP! +100", Color3.fromRGB(170, 0, 255))
 	trickEvent:FireServer("DarkFlip")
 
 	task.wait(0.15)
 	doingTrick = false
 end
+
+-- The game tells us how many points we got (better decks give more!)
+local TRICK_NAMES = {
+	DarkFlip = { Text = "DARK FLIP!", Colour = Color3.fromRGB(170, 0, 255) },
+}
+trickEvent.OnClientEvent:Connect(function(trickName, points)
+	local trick = TRICK_NAMES[trickName]
+	if trick then
+		showTrickText(trick.Text .. " +" .. points, trick.Colour)
+	end
+end)
 
 ContextActionService:BindAction("DarkFlip", darkFlip, true, Enum.KeyCode.F, Enum.KeyCode.ButtonX)
 ContextActionService:SetTitle("DarkFlip", "Dark Flip")
