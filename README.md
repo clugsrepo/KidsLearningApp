@@ -50,3 +50,5 @@ Plain HTML, CSS and JavaScript with no build step. `app.css` and `sheet-app.js` 
 ## Printing tips
 
 Choose A4 paper. If a sheet spills onto a second page, set margins to **None** (or Default) in the print box.
+
+Print from a normal browser tab (Safari, Chrome or Edge). Home Screen web apps and the browsers built into other apps (Claude, WhatsApp, email) ignore the Print button; the page spots this and shows a **Copy link** button so you can open it in Safari instead.

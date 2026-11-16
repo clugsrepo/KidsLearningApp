@@ -13,12 +13,15 @@
   --muted: #6a6475;
   --line: #dddae4;
   --focus: #6a4fd6;
+  --notice: #fff6dc;
+  --notice-edge: #edd38a;
   --font-display: "Andika", "Century Gothic", "Avenir Next", "Trebuchet MS", sans-serif;
   --font-ui: "Lexend", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   color-scheme: light;
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { margin: 0; }
 body {
   background: var(--ground);
@@ -287,6 +290,20 @@ legend { padding: 0; margin-bottom: 8px; }
 }
 .btn-secondary:hover { border-color: #bdb8c8; }
 .btn-secondary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* Help that appears when Print is pressed but no print box opens */
+.print-help {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--notice-edge);
+  border-radius: 12px;
+  background: var(--notice);
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+.print-help p { margin: 0; }
+.print-help .print-link { font-size: 12px; color: var(--muted); word-break: break-all; user-select: all; -webkit-user-select: all; }
 
 /* ---------- Phones ---------- */
 @media (max-width: 860px) {

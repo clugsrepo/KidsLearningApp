@@ -146,15 +146,49 @@
       render();
     }
 
-    printBtn.addEventListener("click", async () => {
+    // Shown when Print is pressed but no print box opens, which happens in Home Screen
+    // web apps and in browsers built into other apps.
+    const pageLink = location.href.split(/[?#]/)[0];
+    const printHelp = document.createElement("div");
+    printHelp.className = "print-help";
+    printHelp.hidden = true;
+    printHelp.setAttribute("role", "status");
+    printHelp.innerHTML = `<p><strong>No print box?</strong> Printing is blocked when this page is opened from a
+      Home Screen icon or inside another app, like Claude or WhatsApp. Copy the link, open it in Safari or
+      Chrome, and press Print there.</p>
+      <p class="print-link">${esc(pageLink)}</p>
+      <button type="button" class="btn-secondary">Copy link</button>`;
+    printBtn.before(printHelp);
+    const copyBtn = printHelp.querySelector("button");
+    copyBtn.addEventListener("click", () => {
+      const copied = () => { copyBtn.textContent = "Link copied"; };
+      const selectLink = () => getSelection().selectAllChildren(printHelp.querySelector(".print-link"));
+      try { navigator.clipboard.writeText(pageLink).then(copied, selectLink); } catch (e) { selectLink(); }
+    });
+
+    let printOpened = false;
+    window.addEventListener("beforeprint", () => {
+      printOpened = true;
+      printHelp.hidden = true;
+    });
+
+    function openPrint() {
+      printOpened = false;
+      window.print();
+      setTimeout(() => { if (!printOpened) printHelp.hidden = false; }, 1200);
+    }
+
+    printBtn.addEventListener("click", () => {
       // A set that has already gone to print is swapped before the next print,
       // so the preview never changes while a print box is open.
       if (fresh) {
         if (state.seed === printedSeed) reseed();
         printedSeed = state.seed;
       }
-      try { await document.fonts.ready; } catch (e) { /* print anyway */ }
-      window.print();
+      // Print straight from the tap: some browsers ignore print() once the tap has been handled.
+      // Only wait when the web fonts are still arriving.
+      if (document.fonts && document.fonts.status === "loading") document.fonts.ready.then(openPrint, openPrint);
+      else openPrint();
     });
 
     if ("ResizeObserver" in window) new ResizeObserver(fitPreview).observe(preview);
