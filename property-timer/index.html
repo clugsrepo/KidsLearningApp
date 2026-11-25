@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Property Game Timer</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titan+One&family=Nunito:wght@600;800&display=swap">
+<style>
+  body { margin: 0; font-size: 14px; }
+  img { max-width: 100%; }
+  /* Layout: a board-game track runs round the edge of the screen; a pawn hops one square
+     every 15 seconds from START to FINISH while the big clock sits on the felt in the middle. */
+  :root {
+    color-scheme: dark;
+    --felt: #0e3a2c;
+    --felt-deep: #08261c;
+    --pine: #1d6a4c;
+    --berry: #cf3a30;
+    --gold: #f4c24f;
+    --snow: #fdf5e2;
+    --ink: #071d15;
+    --plum: #7a3b8f;
+    --teal: #1f8a9e;
+    --tangerine: #e8782a;
+    --font-display: "Titan One", "Arial Rounded MT Bold", "Trebuchet MS", sans-serif;
+    --font-body: "Nunito", "Trebuchet MS", system-ui, sans-serif;
+  }
+  html, body { height: 100%; }
+  body {
+    box-sizing: border-box;
+    background: radial-gradient(ellipse at center, var(--felt) 0%, var(--felt-deep) 100%) var(--felt-deep);
+    color: var(--snow);
+    font-family: var(--font-body);
+    padding-block: 16px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    overflow: hidden;
+  }
+  #snow { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+
+  .board {
+    position: relative; z-index: 1;
+    height: 100%;
+    display: grid;
+    grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+    grid-template-rows: repeat(var(--rows), minmax(0, 1fr));
+    gap: clamp(3px, 0.5vmin, 8px);
+  }
+  .cell {
+    --cellbg: var(--snow); --cellfg: var(--ink); --band: var(--berry); --bw: clamp(6px, 2.4vmin, 28px);
+    box-sizing: border-box;
+    background: var(--cellbg); color: var(--cellfg);
+    border-radius: clamp(4px, 1vmin, 12px);
+    box-shadow: inset 0 -0.5vmin 0 rgb(0 0 0 / 0.22);
+    display: grid; place-items: center;
+    min-width: 0; min-height: 0; overflow: hidden;
+    transition: opacity 0.6s, filter 0.6s;
+  }
+  .cell.b1 { --band: var(--pine); } .cell.b2 { --band: var(--gold); } .cell.b3 { --band: var(--plum); }
+  .cell.b4 { --band: var(--teal); } .cell.b5 { --band: var(--tangerine); }
+  .cell.s-top { border-bottom: var(--bw) solid var(--band); }
+  .cell.s-right { border-left: var(--bw) solid var(--band); }
+  .cell.s-bottom { border-top: var(--bw) solid var(--band); }
+  .cell.s-left { border-right: var(--bw) solid var(--band); }
+  .cell.corner { --cellbg: var(--berry); --cellfg: var(--snow); }
+  .cell.corner svg { width: 60%; height: 60%; }
+  .cell svg { width: 46%; height: 46%; }
+  .cell.passed { opacity: 0.32; filter: saturate(0.6); }
+  .cell.label {
+    --cellbg: var(--ink); --cellfg: var(--gold);
+    border: 0.4vmin dashed var(--gold);
+    font-family: var(--font-display);
+    font-size: clamp(9px, 1.7vmin, 22px);
+    letter-spacing: 0.04em; text-align: center; line-height: 1.05;
+    place-items: start center; padding-top: 7%; box-sizing: border-box;
+  }
+
+  .pawn {
+    position: absolute; left: 0; top: 0; z-index: 3;
+    width: var(--pawn, 40px); height: calc(var(--pawn, 40px) * 1.4);
+    margin: calc(var(--pawn, 40px) * -1.4) 0 0 calc(var(--pawn, 40px) * -0.5);
+    transition: transform 0.7s cubic-bezier(0.3, 1.3, 0.5, 1);
+    pointer-events: none;
+    filter: drop-shadow(0 0.6vmin 0.4vmin rgb(0 0 0 / 0.45));
+  }
+  .pawn.snap { transition: none; }
+  .pawn svg { width: 100%; height: 100%; display: block; }
+  .pawn.hop svg { animation: hop 0.7s ease-out; }
+  @keyframes hop { 40% { transform: translateY(-45%) rotate(-8deg); } 100% { transform: none; } }
+
+  .centre {
+    grid-column: 2 / -2; grid-row: 2 / -2; position: relative; z-index: 1;
+    container-type: size;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 1.5cqh; min-width: 0; min-height: 0;
+  }
+  .pieces {
+    grid-column: 2 / -2; grid-row: 2 / -2; position: relative; z-index: 0;
+    pointer-events: none; overflow: hidden; --cellbg: var(--felt);
+  }
+  .pieces svg { position: absolute; opacity: 0.14; translate: -50% -50%; }
+  .clockrow { display: flex; align-items: center; justify-content: center; gap: 2cqw; font-size: min(24cqw, 42cqh); }
+  .sandtimer { flex: none; height: 0.82em; width: 0.49em; }
+  body.running #sandStream { opacity: 1; animation: coins 0.45s linear infinite; }
+  @keyframes coins { to { stroke-dashoffset: -7.1; } }
+  .heading { display: flex; align-items: center; gap: 2.5cqw; }
+  h1 {
+    margin: 0; font-family: var(--font-display); font-weight: 400;
+    font-size: min(5cqw, 8cqh); color: var(--gold);
+    letter-spacing: 0.03em; text-wrap: balance; text-align: center;
+    text-shadow: 0 0.08em 0 var(--ink);
+  }
+  .die {
+    flex: none; font-size: min(6.5cqw, 10cqh); width: 1em; height: 1em;
+    background: var(--snow); border-radius: 18%;
+    box-shadow: inset 0 -0.12em 0 rgb(0 0 0 / 0.2);
+    display: grid; grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+    padding: 0.14em; box-sizing: border-box; gap: 0.06em;
+  }
+  .die i { border-radius: 50%; background: var(--berry); opacity: 0; }
+  .die i.on { opacity: 1; }
+  .die.roll { animation: roll 0.6s ease-out; }
+  .die:last-child i { background: var(--pine); }
+  @keyframes roll { from { transform: rotate(-200deg) scale(0.7); } to { transform: none; } }
+
+  .clock {
+    font-family: var(--font-display);
+    font-size: 1em; line-height: 0.95;
+    color: var(--snow);
+    text-shadow: 0 0.05em 0 var(--berry), 0 0.1em 0.12em rgb(0 0 0 / 0.5);
+    white-space: nowrap;
+  }
+  .clock span { display: inline-block; width: 0.64em; text-align: center; }
+  .clock span.colon { width: 0.3em; color: var(--gold); }
+  body.last-minute .clock { color: var(--gold); animation: pulse 1s ease-in-out infinite; }
+  body.done .clock { color: var(--berry); text-shadow: 0 0.05em 0 var(--snow), 0 0.1em 0.12em rgb(0 0 0 / 0.5); animation: pulse 0.6s ease-in-out infinite; }
+  @keyframes pulse { 50% { transform: scale(1.04); } }
+
+  .status {
+    margin: 0; font-weight: 800; font-size: min(3.4cqw, 5.5cqh);
+    letter-spacing: 0.08em; text-transform: uppercase; text-align: center;
+  }
+  .controls { display: flex; flex-wrap: wrap; justify-content: center; gap: min(1.6cqw, 12px); }
+  button {
+    font: 800 clamp(13px, min(2.2cqw, 3.6cqh), 26px) var(--font-body);
+    color: var(--snow); background: transparent;
+    border: 2px solid rgb(253 245 226 / 0.55); border-radius: 999px;
+    padding: 0.5em 1.2em; cursor: pointer;
+    transition: transform 0.12s, background 0.12s;
+  }
+  button:hover { background: rgb(253 245 226 / 0.12); }
+  button:active { transform: translateY(2px); }
+  button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+  button.primary { background: var(--berry); border-color: var(--berry); box-shadow: 0 0.2em 0 #8c211b; }
+  button.primary:hover { background: #dd4a40; }
+  .keys { margin: 0; font-size: clamp(10px, min(1.4cqw, 2.4cqh), 16px); opacity: 0.6; text-align: center; }
+  @media (hover: none) { .keys { display: none; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pawn, .cell { transition: none; }
+    .pawn.hop svg, .die.roll, body.last-minute .clock, body.done .clock { animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="snow" aria-hidden="true"></canvas>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-star" viewBox="0 0 24 24"><polygon fill="currentColor" points="12,2 14.9,8.6 22,9.3 16.6,14 18.2,21 12,17.3 5.8,21 7.4,14 2,9.3 9.1,8.6"/></symbol>
+  <symbol id="i-tree" viewBox="0 0 24 24"><path fill="currentColor" d="M12 1 17 8h-2.5l4.5 6h-3.5l4.5 6H4l4.5-6H5l4.5-6H7z"/><rect fill="currentColor" x="10.5" y="20" width="3" height="3.5"/></symbol>
+  <symbol id="i-gift" viewBox="0 0 24 24"><circle fill="currentColor" cx="9" cy="4.5" r="2.6"/><circle fill="currentColor" cx="15" cy="4.5" r="2.6"/><rect fill="currentColor" x="2" y="7" width="20" height="4.5" rx="1"/><rect fill="currentColor" x="3.5" y="12.5" width="17" height="10" rx="1"/><rect fill="var(--cellbg)" x="10.75" y="7" width="2.5" height="15.5"/></symbol>
+  <symbol id="i-flake" viewBox="0 0 24 24"><g stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"><path d="M12 2v20M3.3 7l17.4 10M3.3 17 20.7 7M9.5 3.5 12 6l2.5-2.5M9.5 20.5 12 18l2.5 2.5"/></g></symbol>
+  <symbol id="i-meeple" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a3.2 3.2 0 0 1 2.3 5.4c3.6.8 7.2 2.6 7.2 4.6 0 1.5-2 1.7-4.2 1.3L20 22h-5.5L12 17.5 9.5 22H4l2.7-8.7c-2.2.4-4.2.2-4.2-1.3 0-2 3.6-3.8 7.2-4.6A3.2 3.2 0 0 1 12 2z"/></symbol>
+  <symbol id="i-die" viewBox="0 0 24 24"><rect fill="currentColor" x="3" y="3" width="18" height="18" rx="4"/><g fill="var(--cellbg)"><circle cx="8" cy="8" r="1.7"/><circle cx="16" cy="8" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="8" cy="16" r="1.7"/><circle cx="16" cy="16" r="1.7"/></g></symbol>
+  <symbol id="i-card" viewBox="0 0 24 24"><rect fill="currentColor" x="5" y="2" width="14" height="20" rx="2.5"/><polygon fill="var(--cellbg)" points="12,7 15.5,12 12,17 8.5,12"/></symbol>
+  <symbol id="i-domino" viewBox="0 0 24 24"><rect fill="currentColor" x="6" y="2" width="12" height="20" rx="2.5"/><g fill="var(--cellbg)"><rect x="7.5" y="11.4" width="9" height="1.2"/><circle cx="12" cy="7" r="1.5"/><circle cx="9.8" cy="15.2" r="1.3"/><circle cx="14.2" cy="18.8" r="1.3"/></g></symbol>
+  <symbol id="i-glass" viewBox="0 0 24 24"><path fill="currentColor" d="M6 2h12v3c0 3.5-3 5.5-4.5 7 1.5 1.5 4.5 3.5 4.5 7v3H6v-3c0-3.5 3-5.5 4.5-7C9 10.5 6 8.5 6 5z"/></symbol>
+  <symbol id="i-house" viewBox="0 0 24 24"><path fill="currentColor" d="M12 3 22 12h-3v9H5v-9H2z"/><rect fill="var(--cellbg)" x="10.5" y="15" width="3" height="6"/></symbol>
+  <symbol id="i-coin" viewBox="0 0 24 24"><circle fill="currentColor" cx="12" cy="12" r="9.5"/><circle fill="none" stroke="var(--cellbg)" stroke-width="1.5" cx="12" cy="12" r="6.2"/><rect fill="var(--cellbg)" x="11.2" y="9" width="1.6" height="6"/></symbol>
+  <symbol id="i-note" viewBox="0 0 24 24"><rect fill="currentColor" x="1.5" y="6" width="21" height="12" rx="2"/><g fill="var(--cellbg)"><circle cx="12" cy="12" r="3"/><circle cx="5.2" cy="12" r="1.1"/><circle cx="18.8" cy="12" r="1.1"/></g></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><circle fill="currentColor" cx="8" cy="8" r="5.5"/><circle fill="var(--cellbg)" cx="8" cy="8" r="2.2"/><path fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" d="M12 12l8.5 8.5M17 17l-2.5 2.5M20 20l-2 2"/></symbol>
+</svg>
+
+<main class="board" id="board">
+  <div class="pieces" id="pieces" aria-hidden="true"></div>
+  <section class="centre">
+    <div class="heading">
+      <div class="die" id="die1" aria-hidden="true"></div>
+      <h1>IS Christmas Team Meeting</h1>
+      <div class="die" id="die2" aria-hidden="true"></div>
+    </div>
+    <div class="clockrow">
+      <svg class="sandtimer" viewBox="0 0 60 100" aria-hidden="true">
+        <defs><clipPath id="glassclip"><path d="M11 12H49V16Q49 38 33 50Q49 62 49 84V88H11V84Q11 62 27 50Q11 38 11 16Z"/></clipPath></defs>
+        <path d="M11 12H49V16Q49 38 33 50Q49 62 49 84V88H11V84Q11 62 27 50Q11 38 11 16Z" fill="rgb(253 245 226 / 0.16)" stroke="#fdf5e2" stroke-width="2.5"/>
+        <g clip-path="url(#glassclip)" fill="#f4c24f">
+          <rect id="sandTop" x="0" y="16" width="60" height="34"/>
+          <line id="sandStream" x1="30" y1="50" x2="30" y2="88" stroke="#f4c24f" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="0.1 7" opacity="0"/>
+          <rect id="sandBottom" x="0" y="88" width="60" height="0"/>
+        </g>
+        <g fill="#cf3a30" stroke="#071d15" stroke-width="2"><rect x="5" y="3" width="50" height="9" rx="3.5"/><rect x="5" y="88" width="50" height="9" rx="3.5"/></g>
+      </svg>
+      <div class="clock" id="clock" role="timer" aria-label="Time remaining">
+        <span>1</span><span>0</span><span class="colon">:</span><span>0</span><span>0</span>
+      </div>
+    </div>
+    <p class="status" id="status" aria-live="polite">Ready to play</p>
+    <div class="controls">
+      <button class="primary" id="startBtn" type="button">Start</button>
+      <button id="resetBtn" type="button">Reset</button>
+      <button id="soundBtn" type="button" aria-pressed="true">Bells on</button>
+      <button id="fullBtn" type="button">Full screen</button>
+    </div>
+    <p class="keys">Space to start or pause · R to reset · F for full screen</p>
+  </section>
+  <div class="pawn snap" id="pawn" aria-hidden="true">
+    <svg viewBox="0 0 40 56">
+      <g stroke="#071d15" stroke-width="2.5" stroke-linejoin="round">
+        <rect x="5" y="45" width="30" height="8" rx="4" fill="#f4c24f"/>
+        <path d="M11 46Q20 18 29 46Z" fill="#f4c24f"/>
+        <circle cx="20" cy="21" r="8.5" fill="#f4c24f"/>
+        <path d="M11.5 16 22 2l7 14z" fill="#cf3a30"/>
+        <rect x="9.5" y="14" width="21" height="5" rx="2.5" fill="#fdf5e2"/>
+        <circle cx="22" cy="3.5" r="3" fill="#fdf5e2"/>
+      </g>
+    </svg>
+  </div>
+</main>
+
+<script>
+(function () {
+  var DURATION = 10 * 60 * 1000;
+  var SQUARES = 40;
+  var board = document.getElementById('board');
+  var pawn = document.getElementById('pawn');
+  var clock = document.getElementById('clock');
+  var digits = clock.querySelectorAll('span:not(.colon)');
+  var statusEl = document.getElementById('status');
+  var startBtn = document.getElementById('startBtn');
+  var resetBtn = document.getElementById('resetBtn');
+  var soundBtn = document.getElementById('soundBtn');
+  var fullBtn = document.getElementById('fullBtn');
+  var dice = [document.getElementById('die1'), document.getElementById('die2')];
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var remaining = DURATION, running = false, endAt = 0;
+  var cells = [], currentCell = -1, lastMinute = -1, portrait = null;
+  var soundOn = true, audio = null, wakeLock = null;
+
+  /* ---------- board ---------- */
+  function buildBoard() {
+    var isPortrait = window.innerHeight > window.innerWidth;
+    if (isPortrait === portrait) return;
+    portrait = isPortrait;
+    var cols = isPortrait ? 8 : 14, rows = isPortrait ? 14 : 8;
+    board.style.setProperty('--cols', cols);
+    board.style.setProperty('--rows', rows);
+    cells.forEach(function (c) { c.remove(); });
+    cells = [];
+    var pos = [], c, r;
+    for (c = 1; c <= cols; c++) pos.push([c, 1, 'top']);
+    for (r = 2; r <= rows; r++) pos.push([cols, r, 'right']);
+    for (c = cols - 1; c >= 1; c--) pos.push([c, rows, 'bottom']);
+    for (r = rows - 1; r >= 2; r--) pos.push([1, r, 'left']);
+    var icons = ['house', 'coin', 'key', 'tree', 'note', 'house', 'gift', 'coin'];
+    var corners = [cols - 1, cols + rows - 2, 2 * cols + rows - 3], cornerIcons = ['star', 'die', 'flake'];
+    pos.forEach(function (p, i) {
+      var el = document.createElement('div');
+      el.className = 'cell';
+      el.style.gridColumn = p[0];
+      el.style.gridRow = p[1];
+      if (i === 0) { el.classList.add('label'); el.textContent = 'START'; }
+      else if (i === pos.length - 1) { el.classList.add('label'); el.textContent = 'FINISH'; }
+      else {
+        var k = corners.indexOf(i), icon = icons[i % 8];
+        if (k !== -1) { el.classList.add('corner'); icon = cornerIcons[k]; }
+        else el.classList.add('s-' + p[2], 'b' + (Math.floor((i - 1) / 3) % 6));
+        el.innerHTML = '<svg aria-hidden="true"><use href="#i-' + icon + '"/></svg>';
+      }
+      board.insertBefore(el, pawn);
+      cells.push(el);
+    });
+    currentCell = -1;
+  }
+
+  function placePawn(index, snap) {
+    var el = cells[index];
+    if (!el) return;
+    var size = Math.min(el.offsetWidth, el.offsetHeight * 0.5) * 0.9;
+    pawn.style.setProperty('--pawn', size + 'px');
+    pawn.classList.toggle('snap', !!snap);
+    pawn.style.transform = 'translate(' + (el.offsetLeft + el.offsetWidth / 2) + 'px,' +
+      (el.offsetTop + el.offsetHeight * 0.95) + 'px)';
+    if (!snap && !reduceMotion) {
+      pawn.classList.remove('hop'); void pawn.offsetWidth; pawn.classList.add('hop');
+    }
+  }
+
+  /* ---------- background game pieces ---------- */
+  [['house', 6, 11, 13, -15, 'snow'], ['note', 91, 10, 15, 18, 'gold'], ['coin', 8, 82, 14, -10, 'gold'],
+   ['house', 92, 84, 15, 12, 'snow'], ['key', 80, 46, 12, 12, 'snow'], ['card', 21, 47, 13, -22, 'snow'],
+   ['die', 68, 90, 10, 30, 'gold'], ['coin', 30, 7, 10, 10, 'gold'], ['note', 70, 6, 12, -25, 'snow'],
+   ['key', 35, 90, 11, 8, 'snow'], ['die', 96, 46, 9, -8, 'snow'], ['coin', 3, 46, 9, 15, 'gold']
+  ].forEach(function (p) {
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.innerHTML = '<use href="#i-' + p[0] + '"/>';
+    svg.style.cssText = 'left:' + p[1] + '%;top:' + p[2] + '%;width:' + p[3] + 'vmin;height:' + p[3] +
+      'vmin;rotate:' + p[4] + 'deg;color:var(--' + p[5] + ')';
+    document.getElementById('pieces').appendChild(svg);
+  });
+  var sandTop = document.getElementById('sandTop'), sandBottom = document.getElementById('sandBottom');
+
+  /* ---------- dice ---------- */
+  var PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
+  dice.forEach(function (d) { for (var i = 0; i < 9; i++) d.appendChild(document.createElement('i')); });
+  function rollDice() {
+    dice.forEach(function (d) {
+      var v = 1 + Math.floor(Math.random() * 6);
+      Array.prototype.forEach.call(d.children, function (pip, i) {
+        pip.classList.toggle('on', PIPS[v].indexOf(i) !== -1);
+      });
+      d.classList.remove('roll'); void d.offsetWidth; d.classList.add('roll');
+    });
+  }
+
+  /* ---------- sound ---------- */
+  function ensureAudio() {
+    if (audio) return;
+    try { audio = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { audio = null; }
+  }
+  function bell(freq, when, length) {
+    if (!audio) return;
+    var t = audio.currentTime + when;
+    [1, 2.01, 3.02].forEach(function (mult, i) {
+      var osc = audio.createOscillator(), gain = audio.createGain();
+      osc.type = 'sine'; osc.frequency.value = freq * mult;
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.28 / (i + 1), t + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + length);
+      osc.connect(gain); gain.connect(audio.destination);
+      osc.start(t); osc.stop(t + length + 0.05);
+    });
+  }
+  function finishChime() {
+    if (!soundOn || !audio) return;
+    var notes = [784, 988, 1175, 1568, 1175, 1568];
+    for (var round = 0; round < 3; round++) {
+      notes.forEach(function (f, i) { bell(f, round * 1.6 + i * 0.22, 1.2); });
+    }
+  }
+
+  /* ---------- timer ---------- */
+  function render(snap) {
+    var secs = Math.ceil(remaining / 1000);
+    var m = Math.floor(secs / 60), s = secs % 60;
+    var text = (m < 10 ? '0' : '') + m + (s < 10 ? '0' : '') + s;
+    for (var i = 0; i < 4; i++) if (digits[i].textContent !== text[i]) digits[i].textContent = text[i];
+
+    var done = remaining <= 0;
+    var cell = done ? SQUARES - 1 : Math.floor((DURATION - remaining) / DURATION * (SQUARES - 1));
+    if (cell !== currentCell || snap) {
+      currentCell = cell;
+      cells.forEach(function (c, i) { c.classList.toggle('passed', i < cell); });
+      placePawn(cell, snap);
+    }
+    if (m !== lastMinute) { if (lastMinute !== -1 && running) rollDice(); lastMinute = m; }
+
+    var frac = remaining / DURATION;
+    sandTop.setAttribute('y', 50 - 34 * frac); sandTop.setAttribute('height', 34 * frac);
+    sandBottom.setAttribute('y', 88 - 30 * (1 - frac)); sandBottom.setAttribute('height', 30 * (1 - frac));
+    document.body.classList.toggle('running', running);
+    document.body.classList.toggle('done', done);
+    document.body.classList.toggle('last-minute', !done && secs <= 60 && remaining < DURATION);
+    statusEl.textContent = done ? "Time's up!"
+      : running ? (secs <= 60 ? 'Last minute!' : 'Game on')
+      : remaining < DURATION ? 'Paused' : 'Ready to play';
+    startBtn.textContent = done ? 'Play again' : running ? 'Pause' : remaining < DURATION ? 'Resume' : 'Start';
+  }
+
+  function tick() {
+    if (!running) return;
+    remaining = Math.max(0, endAt - Date.now());
+    if (remaining <= 0) {
+      running = false;
+      releaseWake();
+      render();
+      finishChime();
+      burst();
+      return;
+    }
+    render();
+  }
+
+  function start() {
+    ensureAudio();
+    if (audio && audio.state === 'suspended') audio.resume();
+    if (remaining <= 0) { remaining = DURATION; lastMinute = -1; }
+    endAt = Date.now() + remaining;
+    running = true;
+    rollDice();
+    requestWake();
+    render();
+  }
+  function pause() {
+    remaining = Math.max(0, endAt - Date.now());
+    running = false;
+    releaseWake();
+    render();
+  }
+  function reset() {
+    running = false;
+    remaining = DURATION;
+    lastMinute = -1;
+    releaseWake();
+    rollDice();
+    render();
+  }
+
+  function requestWake() {
+    try {
+      if (navigator.wakeLock) navigator.wakeLock.request('screen').then(function (l) { wakeLock = l; }, function () {});
+    } catch (e) {}
+  }
+  function releaseWake() {
+    try { if (wakeLock) wakeLock.release(); } catch (e) {}
+    wakeLock = null;
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && running) requestWake();
+    tick();
+  });
+
+  startBtn.addEventListener('click', function () { running ? pause() : start(); });
+  resetBtn.addEventListener('click', reset);
+  soundBtn.addEventListener('click', function () {
+    soundOn = !soundOn;
+    soundBtn.textContent = soundOn ? 'Bells on' : 'Bells off';
+    soundBtn.setAttribute('aria-pressed', soundOn);
+    if (soundOn) { ensureAudio(); if (audio && audio.state === 'suspended') audio.resume(); bell(1175, 0, 0.8); }
+  });
+  function toggleFull() {
+    try {
+      if (document.fullscreenElement) document.exitFullscreen();
+      else { var p = document.documentElement.requestFullscreen(); if (p && p.catch) p.catch(function () {}); }
+    } catch (e) {}
+  }
+  fullBtn.addEventListener('click', toggleFull);
+  document.addEventListener('fullscreenchange', function () {
+    fullBtn.textContent = document.fullscreenElement ? 'Exit full screen' : 'Full screen';
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.target.tagName === 'BUTTON' && (e.code === 'Space' || e.code === 'Enter')) return;
+    if (e.code === 'Space') { e.preventDefault(); running ? pause() : start(); }
+    else if (e.key === 'r' || e.key === 'R') reset();
+    else if (e.key === 'f' || e.key === 'F') toggleFull();
+  });
+
+  /* ---------- snow ---------- */
+  var canvas = document.getElementById('snow'), ctx = canvas.getContext('2d');
+  var flakes = [], W = 0, H = 0, flurry = 0;
+  function sizeCanvas() {
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  function makeFlake(top) {
+    return { x: Math.random() * W, y: top ? -10 : Math.random() * H, r: 1.5 + Math.random() * 3.5,
+      v: 0.3 + Math.random() * 0.9, sway: Math.random() * Math.PI * 2, a: 0.35 + Math.random() * 0.5 };
+  }
+  function burst() { flurry = 600; }
+  function drawSnow() {
+    ctx.clearRect(0, 0, W, H);
+    var target = flurry > 0 ? 260 : 90;
+    if (flurry > 0) flurry--;
+    while (flakes.length < target) flakes.push(makeFlake(flakes.length >= 90));
+    for (var i = flakes.length - 1; i >= 0; i--) {
+      var f = flakes[i];
+      if (!reduceMotion) {
+        f.y += f.v * (flurry > 0 ? 2.2 : 1); f.sway += 0.01; f.x += Math.sin(f.sway) * 0.4;
+        if (f.y > H + 10) { if (flakes.length > target) { flakes.splice(i, 1); continue; } f.y = -10; f.x = Math.random() * W; }
+      }
+      ctx.globalAlpha = f.a;
+      ctx.fillStyle = '#fdf5e2';
+      ctx.beginPath(); ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2); ctx.fill();
+    }
+    if (!reduceMotion) requestAnimationFrame(drawSnow);
+  }
+
+  /* ---------- boot ---------- */
+  function layout() {
+    sizeCanvas();
+    buildBoard();
+    render(true);
+    if (reduceMotion) drawSnow();
+  }
+  var resizeTimer;
+  window.addEventListener('resize', function () { clearTimeout(resizeTimer); resizeTimer = setTimeout(layout, 80); });
+
+  function boot(data) {
+    if (data && typeof data.remaining === 'number') {
+      remaining = data.remaining;
+      if (data.running && data.endAt) { endAt = data.endAt; remaining = Math.max(0, endAt - Date.now()); running = remaining > 0; }
+    }
+    rollDice();
+    layout();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { render(true); });
+    setInterval(tick, 100);
+    if (!reduceMotion) requestAnimationFrame(drawSnow);
+  }
+  var hot = window.claude && window.claude.hot;
+  if (hot && hot.snapshot) hot.snapshot(function () { return { remaining: remaining, running: running, endAt: endAt }; });
+  if (hot && hot.ready) hot.ready(boot); else boot((hot && hot.data) || {});
+})();
+</script>
+</body>
+</html>
